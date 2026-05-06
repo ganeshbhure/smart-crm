@@ -196,7 +196,7 @@ http://localhost:3000
 # 👨‍💻 Contributors
 
 - Ganesh Bhure
-- Project Partner
+- Sonu Yadav
 
 ---
 

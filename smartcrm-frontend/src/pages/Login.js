@@ -194,6 +194,15 @@ export default function Login() {
                     <p style={{ textAlign: "center", fontSize: 12.5, color: "#9ca3af", marginTop: 20 }}>
                         Smart CRM · Secure login
                     </p>
+                    <p>
+            Don't have an account?{" "}
+            <span
+                onClick={() => navigate("/register")}
+                style={{ color: "blue", cursor: "pointer" }}
+            >
+                Register
+            </span>
+        </p>
                 </div>
             </div>
         </>

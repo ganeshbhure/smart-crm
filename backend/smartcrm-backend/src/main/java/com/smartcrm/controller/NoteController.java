@@ -49,4 +49,8 @@ public class NoteController {
         noteService.deleteNote(noteId);
         return ResponseEntity.ok("Note deleted");
     }
+    @GetMapping("/count/open")
+public long getOpenNotes() {
+    return noteService.countOpenNotes();
+}
 }

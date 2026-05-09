@@ -413,11 +413,11 @@ export default function Dashboard() {
 
     /* ─── NAV items ─── */
     const navItems = [
-        { id: "dashboard", icon: "⊞", label: "Dashboard" },
-        { id: "customers", icon: "👥", label: "Customers" },
-        { id: "analytics", icon: "📊", label: "Analytics" },
-        { id: "settings",  icon: "⚙",  label: "Settings"  },
-    ];
+    { id: "dashboard", icon: "⊞", label: "Dashboard", path: "/dashboard" },
+    { id: "customers", icon: "👥", label: "Customers", path: "/dashboard" }, // same page
+    { id: "analytics", icon: "📊", label: "Analytics", path: "/analytics" },
+    { id: "settings", label: "Settings", icon: "⚙", path: "/settings" }
+];
 
     /* ─── render ─── */
     return (
@@ -456,7 +456,11 @@ export default function Dashboard() {
                         {navItems.map((item) => {
                             const active = activeNav === item.id;
                             return (
-                                <button key={item.id} onClick={() => setActiveNav(item.id)} style={{
+                                
+                                <button key={item.id} onClick={() => {
+    setActiveNav(item.id);
+    navigate(item.path);
+}} style={{
                                     display: "flex", alignItems: "center", gap: 10,
                                     padding: "9px 12px", borderRadius: 8, border: "none",
                                     cursor: "pointer", fontFamily: "inherit", fontSize: 13.5,

@@ -64,6 +64,10 @@ public class CustomerService {
         return convertToResponse(customerRepository.save(customer));
     }
 
+    public long countCustomers() {
+    return customerRepository.count();
+}
+
     public void deleteCustomer(Long id){
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));

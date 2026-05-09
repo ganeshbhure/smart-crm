@@ -67,9 +67,10 @@ export const registerUser = async (userData) => {
     });
 
     if (!response.ok) {
-        throw new Error("Registration failed");
-    }
-
+    const text = await response.text();
+    console.log("Registration Error:", text);
+    throw new Error(text || "Registration failed");
+}
     return response.json();
 };
 

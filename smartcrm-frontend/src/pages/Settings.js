@@ -1,453 +1,415 @@
 import React, { useState, useEffect } from "react";
+import Layout from "../components/Layout";
 
 const BASE_URL = "http://localhost:8080";
 
-const getToken = () => localStorage.getItem("token");
-
+const getToken    = () => localStorage.getItem("token");
 const authHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${getToken()}`,
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${getToken()}`,
 });
 
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#f0f2f7",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    padding: "36px 40px",
-    boxSizing: "border-box",
-  },
-  header: {
-    marginBottom: "32px",
-  },
-  headerTitle: {
-    fontSize: "26px",
-    fontWeight: "700",
-    color: "#0f172a",
-    margin: 0,
-    letterSpacing: "-0.5px",
-  },
-  headerSub: {
-    fontSize: "14px",
-    color: "#64748b",
-    marginTop: "4px",
-    margin: "4px 0 0 0",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-    gap: "24px",
-    maxWidth: "900px",
-  },
-  card: {
-    background: "#ffffff",
-    borderRadius: "16px",
-    padding: "28px 32px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06)",
-    boxSizing: "border-box",
-  },
-  cardTitle: {
-    fontSize: "15px",
-    fontWeight: "700",
-    color: "#0f172a",
-    margin: "0 0 20px 0",
-    paddingBottom: "14px",
-    borderBottom: "1px solid #f1f5f9",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  avatarWrap: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    marginBottom: "20px",
-  },
-  avatar: {
-    width: "56px",
-    height: "56px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "22px",
-    fontWeight: "700",
-    color: "#fff",
-    flexShrink: 0,
-    letterSpacing: "-0.5px",
-  },
-  avatarInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-  },
-  avatarName: {
-    fontSize: "16px",
-    fontWeight: "700",
-    color: "#0f172a",
-  },
-  avatarEmail: {
-    fontSize: "13px",
-    color: "#64748b",
-  },
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-  label: {
-    fontSize: "12px",
-    fontWeight: "600",
-    color: "#64748b",
-    textTransform: "uppercase",
-    letterSpacing: "0.07em",
-  },
-  value: {
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#1e293b",
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    borderRadius: "8px",
-    padding: "9px 14px",
-  },
-  roleBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    fontSize: "12px",
-    fontWeight: "600",
-    background: "#ede9fe",
-    color: "#6d28d9",
-    padding: "4px 12px",
-    borderRadius: "20px",
-    alignSelf: "flex-start",
-  },
-  input: {
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#1e293b",
-    background: "#ffffff",
-    border: "1.5px solid #e2e8f0",
-    borderRadius: "8px",
-    padding: "9px 14px",
-    outline: "none",
-    transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  saveBtn: {
-    marginTop: "6px",
-    width: "100%",
-    padding: "11px",
-    background: "linear-gradient(135deg, #6366f1, #7c3aed)",
-    color: "#fff",
-    border: "none",
-    borderRadius: "10px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "opacity 0.15s ease, transform 0.15s ease",
-    letterSpacing: "0.01em",
-  },
-  logoutBtn: {
-    marginTop: "6px",
-    width: "100%",
-    padding: "11px",
-    background: "#fff",
-    color: "#ef4444",
-    border: "1.5px solid #fecaca",
-    borderRadius: "10px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "background 0.15s ease, border-color 0.15s ease",
-  },
-  toast: (type) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginTop: "14px",
-    padding: "10px 14px",
-    borderRadius: "10px",
-    fontSize: "13px",
-    fontWeight: "500",
-    background: type === "success" ? "#d1fae5" : "#fee2e2",
-    color: type === "success" ? "#065f46" : "#991b1b",
-    border: `1px solid ${type === "success" ? "#a7f3d0" : "#fca5a5"}`,
-  }),
-  loadingWrap: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#f0f2f7",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    gap: "16px",
-  },
-  spinner: {
-    width: "38px",
-    height: "38px",
-    border: "4px solid #e2e8f0",
-    borderTop: "4px solid #6366f1",
-    borderRadius: "50%",
-    animation: "spin 0.8s linear infinite",
-  },
-  loadingText: {
-    fontSize: "14px",
-    color: "#64748b",
-    fontWeight: "500",
-  },
-  errorWrap: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#f0f2f7",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    color: "#ef4444",
-    fontSize: "15px",
-  },
-  divider: {
-    height: "1px",
-    background: "#f1f5f9",
-    margin: "20px 0",
-  },
-};
-
 export default function Settings() {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(null);
+    /* ── state (unchanged) ── */
+    const [profile,    setProfile]    = useState(null);
+    const [loading,    setLoading]    = useState(true);
+    const [fetchError, setFetchError] = useState(null);
+    const [name,       setName]       = useState("");
+    const [password,   setPassword]   = useState("");
+    const [saving,     setSaving]     = useState(false);
+    const [saveStatus, setSaveStatus] = useState(null);
 
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState(null);
+    /* ── fetch profile (unchanged) ── */
+    useEffect(() => {
+        async function fetchProfile() {
+            try {
+                const res = await fetch(`${BASE_URL}/api/auth/profile`, { headers: authHeaders() });
+                if (!res.ok) throw new Error(`Failed to load profile (${res.status})`);
+                const data = await res.json();
+                setProfile(data);
+                setName(data.name || "");
+            } catch (err) {
+                setFetchError(err.message || "Something went wrong.");
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchProfile();
+    }, []);
 
-  useEffect(() => {
-    const styleTag = document.createElement("style");
-    styleTag.innerHTML = `
-      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
-      @keyframes spin { to { transform: rotate(360deg); } }
-      @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(16px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      .settings-card { animation: fadeUp 0.4s ease both; }
-      .settings-card:nth-child(1) { animation-delay: 0.04s; }
-      .settings-card:nth-child(2) { animation-delay: 0.12s; }
-      .settings-card:nth-child(3) { animation-delay: 0.20s; }
-      .settings-input:focus {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
-      }
-      .settings-save-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-      .settings-save-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-      .settings-logout-btn:hover { background: #fff5f5 !important; border-color: #ef4444 !important; }
-    `;
-    document.head.appendChild(styleTag);
-    return () => document.head.removeChild(styleTag);
-  }, []);
-
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const res = await fetch(`${BASE_URL}/api/auth/profile`, {
-          headers: authHeaders(),
-        });
-        if (!res.ok) throw new Error(`Failed to load profile (${res.status})`);
-        const data = await res.json();
-        setProfile(data);
-        setName(data.name || "");
-      } catch (err) {
-        setFetchError(err.message || "Something went wrong.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProfile();
-  }, []);
-
-  async function handleSave() {
-    if (!name.trim()) {
-      setSaveStatus({ type: "error", message: "Name cannot be empty." });
-      return;
+    /* ── save handler (unchanged) ── */
+    async function handleSave() {
+        if (!name.trim()) {
+            setSaveStatus({ type: "error", message: "Name cannot be empty." });
+            return;
+        }
+        setSaving(true);
+        setSaveStatus(null);
+        const body = { name: name.trim() };
+        if (password.trim()) body.password = password.trim();
+        try {
+            const res = await fetch(`${BASE_URL}/api/auth/profile`, {
+                method: "PUT",
+                headers: authHeaders(),
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) throw new Error(`Update failed (${res.status})`);
+            const updated = await res.json();
+            setProfile((prev) => ({ ...prev, name: updated.name || name }));
+            setPassword("");
+            setSaveStatus({ type: "success", message: "Profile updated successfully." });
+        } catch (err) {
+            setSaveStatus({ type: "error", message: err.message || "Update failed." });
+        } finally {
+            setSaving(false);
+        }
     }
 
-    setSaving(true);
-    setSaveStatus(null);
-
-    const body = { name: name.trim() };
-    if (password.trim()) body.password = password.trim();
-
-    try {
-      const res = await fetch(`${BASE_URL}/api/auth/profile`, {
-        method: "PUT",
-        headers: authHeaders(),
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error(`Update failed (${res.status})`);
-      const updated = await res.json();
-      setProfile((prev) => ({ ...prev, name: updated.name || name }));
-      setPassword("");
-      setSaveStatus({ type: "success", message: "Profile updated successfully." });
-    } catch (err) {
-      setSaveStatus({ type: "error", message: err.message || "Update failed." });
-    } finally {
-      setSaving(false);
+    /* ── logout (unchanged) ── */
+    function handleLogout() {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
     }
-  }
 
-  function handleLogout() {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
-  }
+    /* ── helpers ── */
+    const getInitials = (n) =>
+        (n || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
-  const getInitials = (n) =>
-    (n || "?")
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
+    const AVATAR_COLORS = [
+        { bg: "#e8e4ff", text: "#5b4fcf" },
+        { bg: "#fde8ef", text: "#c0395d" },
+        { bg: "#d6f5ea", text: "#1a7a4a" },
+        { bg: "#fff3cd", text: "#856404" },
+        { bg: "#e3f0ff", text: "#1557a0" },
+    ];
+    const ac = AVATAR_COLORS[(profile?.name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
-  if (loading) {
-    return (
-      <div style={styles.loadingWrap}>
-        <div style={styles.spinner} />
-        <span style={styles.loadingText}>Loading settings…</span>
-      </div>
+    /* ── shared sub-styles ── */
+    const inputStyle = {
+        width: "100%",
+        padding: "9px 13px",
+        borderRadius: 9,
+        border: "1px solid #d1d5db",
+        fontSize: 13.5,
+        fontWeight: 500,
+        color: "#111827",
+        background: "#fff",
+        fontFamily: "inherit",
+        transition: "border-color 0.15s, box-shadow 0.15s",
+    };
+
+    const labelStyle = {
+        fontSize: 11,
+        fontWeight: 700,
+        color: "#6b7280",
+        textTransform: "uppercase",
+        letterSpacing: "0.55px",
+        marginBottom: 5,
+        display: "block",
+    };
+
+    const panelHeader = (icon, title) => (
+        <div style={{
+            padding: "14px 20px",
+            borderBottom: "1px solid #f3f4f6",
+            display: "flex", alignItems: "center", gap: 8,
+            background: "#fafafa",
+        }}>
+            <span style={{ fontSize: 15 }}>{icon}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: "#374151" }}>{title}</span>
+        </div>
     );
-  }
 
-  if (fetchError) {
-    return <div style={styles.errorWrap}>⚠️ {fetchError}</div>;
-  }
+    /* ── loading ── */
+    if (loading) {
+        return (
+            <Layout title="Settings">
+                <div style={{
+                    display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center",
+                    minHeight: "60vh", gap: 16,
+                }}>
+                    <div style={{
+                        width: 38, height: 38,
+                        border: "3px solid #e5e7eb", borderTop: "3px solid #4f46e5",
+                        borderRadius: "50%", animation: "spin 0.75s linear infinite",
+                    }} />
+                    <span style={{ fontSize: 14, color: "#6b7280", fontWeight: 500 }}>Loading settings…</span>
+                </div>
+            </Layout>
+        );
+    }
 
-  return (
-    <div style={styles.page}>
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Settings</h1>
-        <p style={styles.headerSub}>Manage your profile and account preferences.</p>
-      </div>
+    /* ── error ── */
+    if (fetchError) {
+        return (
+            <Layout title="Settings">
+                <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    minHeight: "60vh",
+                }}>
+                    <div style={{
+                        background: "#fff", borderRadius: 14, padding: "32px 40px",
+                        border: "1px solid #e5e7eb", textAlign: "center",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+                    }}>
+                        <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+                        <p style={{ color: "#c0395d", fontWeight: 600, fontSize: 14 }}>{fetchError}</p>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
 
-      <div style={styles.grid}>
-        {/* Profile Overview */}
-        <div style={styles.card} className="settings-card">
-          <h2 style={styles.cardTitle}>
-            <span>👤</span> Profile Overview
-          </h2>
+    /* ── render ── */
+    return (
+        <Layout title="Settings">
+            <div style={{ padding: "28px 32px" }}>
+                {/* Page subtitle */}
+                <p style={{ fontSize: 13.5, color: "#6b7280", marginBottom: 24 }}>
+                    Manage your profile and account preferences.
+                </p>
 
-          <div style={styles.avatarWrap}>
-            <div style={styles.avatar}>{getInitials(profile?.name)}</div>
-            <div style={styles.avatarInfo}>
-              <span style={styles.avatarName}>{profile?.name}</span>
-              <span style={styles.avatarEmail}>{profile?.email}</span>
+                {/* MAIN LAYOUT — 2 cols on wide, stacked on narrow */}
+                <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                    gap: 18,
+                    alignItems: "start",
+                }}>
+                    {/* ── CARD 1: Profile Info ── */}
+                    <div
+                        className="s-card"
+                        style={{
+                            background: "#fff",
+                            borderRadius: 14,
+                            border: "1px solid #e5e7eb",
+                            overflow: "hidden",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                        }}
+                    >
+                        {panelHeader("👤", "Profile")}
+
+                        <div style={{ padding: "20px" }}>
+                            {/* Avatar + name */}
+                            <div style={{
+                                display: "flex", alignItems: "center", gap: 14,
+                                padding: "14px 16px",
+                                background: "#f9fafb",
+                                borderRadius: 10,
+                                border: "1px solid #f3f4f6",
+                                marginBottom: 18,
+                            }}>
+                                <div style={{
+                                    width: 48, height: 48, borderRadius: "50%",
+                                    background: ac.bg, color: ac.text,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontWeight: 800, fontSize: 18,
+                                    flexShrink: 0, letterSpacing: "-0.5px",
+                                }}>
+                                    {getInitials(profile?.name)}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>
+                                        {profile?.name}
+                                    </div>
+                                    <div style={{ fontSize: 12.5, color: "#6b7280", marginTop: 1 }}>
+                                        {profile?.email}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* fields */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                                <div>
+                                    <span style={labelStyle}>Email</span>
+                                    <div style={{
+                                        padding: "9px 13px",
+                                        borderRadius: 9,
+                                        border: "1px solid #f3f4f6",
+                                        background: "#f9fafb",
+                                        fontSize: 13.5, fontWeight: 500, color: "#374151",
+                                    }}>
+                                        {profile?.email}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style={labelStyle}>Role</span>
+                                    <div>
+                    <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        background: "#e8e4ff", color: "#5b4fcf",
+                        padding: "3px 12px", borderRadius: 20,
+                        fontSize: 11, fontWeight: 700,
+                        letterSpacing: "0.4px", textTransform: "uppercase",
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#5b4fcf", display: "inline-block" }} />
+                        {profile?.role}
+                    </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── CARD 2: Edit Profile ── */}
+                    <div
+                        className="s-card"
+                        style={{
+                            background: "#fff",
+                            borderRadius: 14,
+                            border: "1px solid #e5e7eb",
+                            overflow: "hidden",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                        }}
+                    >
+                        {panelHeader("✏️", "Edit Profile")}
+
+                        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                            {/* name */}
+                            <div>
+                                <label htmlFor="settings-name" style={labelStyle}>Full Name</label>
+                                <input
+                                    id="settings-name"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    style={inputStyle}
+                                    className="s-input"
+                                    placeholder="Enter your name"
+                                    autoComplete="off"
+                                />
+                            </div>
+
+                            {/* password */}
+                            <div>
+                                <label htmlFor="settings-password" style={labelStyle}>New Password</label>
+                                <input
+                                    id="settings-password"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    style={inputStyle}
+                                    className="s-input"
+                                    placeholder="Leave blank to keep current"
+                                    autoComplete="new-password"
+                                />
+                                <p style={{ fontSize: 11.5, color: "#9ca3af", margin: "5px 0 0" }}>
+                                    Only fill this if you want to change your password.
+                                </p>
+                            </div>
+
+                            {/* save button */}
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="s-save"
+                                style={{
+                                    padding: "10px 20px",
+                                    borderRadius: 9,
+                                    background: "#4f46e5",
+                                    color: "#fff",
+                                    border: "none",
+                                    fontWeight: 700,
+                                    fontSize: 13.5,
+                                    cursor: saving ? "not-allowed" : "pointer",
+                                    fontFamily: "inherit",
+                                    transition: "background 0.15s, transform 0.15s",
+                                    letterSpacing: "0.1px",
+                                    width: "100%",
+                                }}
+                            >
+                                {saving ? "Saving…" : "Save Changes"}
+                            </button>
+
+                            {/* status toast */}
+                            {saveStatus && (
+                                <div style={{
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    padding: "10px 14px",
+                                    borderRadius: 9,
+                                    fontSize: 13,
+                                    fontWeight: 500,
+                                    ...(saveStatus.type === "success"
+                                            ? { background: "#d6f5ea", color: "#1a7a4a", borderLeft: "4px solid #1a7a4a" }
+                                            : { background: "#fff0f3", color: "#c0395d", borderLeft: "4px solid #c0395d" }
+                                    ),
+                                }}>
+                                    <span>{saveStatus.type === "success" ? "✅" : "⚠️"}</span>
+                                    {saveStatus.message}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ── CARD 3: Account ── */}
+                    <div
+                        className="s-card"
+                        style={{
+                            background: "#fff",
+                            borderRadius: 14,
+                            border: "1px solid #e5e7eb",
+                            overflow: "hidden",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                            gridColumn: "1 / -1",
+                            maxWidth: 440,
+                        }}
+                    >
+                        {panelHeader("🔐", "Account")}
+
+                        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                            {/* session info */}
+                            <div>
+                                <span style={labelStyle}>Session</span>
+                                <div style={{
+                                    display: "flex", alignItems: "center", gap: 10,
+                                    padding: "10px 14px",
+                                    borderRadius: 9,
+                                    background: "#f9fafb",
+                                    border: "1px solid #f3f4f6",
+                                    fontSize: 13.5, fontWeight: 500, color: "#374151",
+                                }}>
+                                    <div style={{
+                                        width: 28, height: 28, borderRadius: "50%",
+                                        background: ac.bg, color: ac.text,
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        fontSize: 12, fontWeight: 700, flexShrink: 0,
+                                    }}>
+                                        {getInitials(profile?.name)}
+                                    </div>
+                                    <span>Signed in as <strong>{profile?.email}</strong></span>
+                                </div>
+                            </div>
+
+                            {/* divider */}
+                            <div style={{ height: 1, background: "#f3f4f6" }} />
+
+                            {/* sign out */}
+                            <button
+                                onClick={handleLogout}
+                                className="s-logout"
+                                style={{
+                                    padding: "9px 20px",
+                                    borderRadius: 9,
+                                    background: "#fff",
+                                    color: "#6b7280",
+                                    border: "1px solid #e5e7eb",
+                                    fontWeight: 600,
+                                    fontSize: 13.5,
+                                    cursor: "pointer",
+                                    fontFamily: "inherit",
+                                    transition: "all 0.15s",
+                                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                                    width: "100%",
+                                }}
+                            >
+                                <span style={{ fontSize: 15 }}>🚪</span>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-
-          <div style={styles.fieldGroup}>
-            <div style={styles.field}>
-              <span style={styles.label}>Email</span>
-              <div style={styles.value}>{profile?.email}</div>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Role</span>
-              <div>
-                <span style={styles.roleBadge}>{profile?.role}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Edit Profile */}
-        <div style={styles.card} className="settings-card">
-          <h2 style={styles.cardTitle}>
-            <span>✏️</span> Edit Profile
-          </h2>
-
-          <div style={styles.fieldGroup}>
-            <div style={styles.field}>
-              <label style={styles.label} htmlFor="settings-name">
-                Full Name
-              </label>
-              <input
-                id="settings-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                style={styles.input}
-                className="settings-input"
-                placeholder="Enter your name"
-                autoComplete="off"
-              />
-            </div>
-
-            <div style={styles.field}>
-              <label style={styles.label} htmlFor="settings-password">
-                New Password
-              </label>
-              <input
-                id="settings-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={styles.input}
-                className="settings-input"
-                placeholder="Leave blank to keep current"
-                autoComplete="new-password"
-              />
-            </div>
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              style={styles.saveBtn}
-              className="settings-save-btn"
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-
-            {saveStatus && (
-              <div style={styles.toast(saveStatus.type)}>
-                <span>{saveStatus.type === "success" ? "✅" : "⚠️"}</span>
-                {saveStatus.message}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Account */}
-        <div style={styles.card} className="settings-card">
-          <h2 style={styles.cardTitle}>
-            <span>🔐</span> Account
-          </h2>
-
-          <div style={styles.fieldGroup}>
-            <div style={styles.field}>
-              <span style={styles.label}>Session</span>
-              <div style={styles.value}>Signed in as {profile?.email}</div>
-            </div>
-          </div>
-
-          <div style={styles.divider} />
-
-          <button
-            onClick={handleLogout}
-            style={styles.logoutBtn}
-            className="settings-logout-btn"
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+        </Layout>
+    );
 }

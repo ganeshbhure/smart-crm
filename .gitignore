@@ -1,0 +1,27 @@
+# IntelliJ
+.idea/
+*.iml
+
+# Node
+node_modules/
+npm-debug.log
+
+# React build
+build/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+
+# Java
+target/
+*.class
+
+# VS Code
+.vscode/

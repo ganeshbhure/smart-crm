@@ -12,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/customers")
 public class CustomerController {
+    
 
     private final CustomerService customerService;
 
@@ -44,6 +45,10 @@ public class CustomerController {
         customerService.deleteCustomer(id);
         return "Customer deleted successfully";
     }
+    @GetMapping("/count")
+public long getCustomerCount() {
+    return customerService.countCustomers();
+}
 
     @PutMapping("/{id}")
     public CustomerResponse updateCustomer(@PathVariable Long id , @Valid @RequestBody CustomerRequest request){

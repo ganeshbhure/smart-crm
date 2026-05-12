@@ -108,6 +108,10 @@ function ContactsModal({ customer, onClose }) {
                 .crm-input:focus    { border-color: #4f46e5 !important; box-shadow: 0 0 0 3px rgba(79,70,229,0.12) !important; }
                 .crm-close:hover    { background: #f3f4f6 !important; }
                 .crm-overlay        { animation: none; }
+                .crm-contact-list::-webkit-scrollbar       { width: 5px; }
+                .crm-contact-list::-webkit-scrollbar-track { background: transparent; }
+                .crm-contact-list::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+                .crm-contact-list::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
             `}</style>
 
             {/* overlay */}
@@ -123,24 +127,26 @@ function ContactsModal({ customer, onClose }) {
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 }}
             >
-                {/* modal */}
+                {/* modal — fixed height, flex column, never grows past viewport */}
                 <div style={{
                     background: "#fff",
                     width: "100%", maxWidth: 480,
                     borderRadius: 18,
                     boxShadow: "0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)",
                     maxHeight: "88vh",
+                    height: "88vh",
                     display: "flex", flexDirection: "column",
                     animation: "fadeIn 0.22s ease",
                     overflow: "hidden",
                 }}>
 
-                    {/* ── HEADER ── */}
+                    {/* ── HEADER — fixed, never scrolls ── */}
                     <div style={{
                         padding: "18px 22px",
                         borderBottom: "1px solid #f3f4f6",
                         display: "flex", alignItems: "center", justifyContent: "space-between",
-                        background: "#fafafa", flexShrink: 0,
+                        background: "#fafafa",
+                        flexShrink: 0,
                     }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{
@@ -173,15 +179,27 @@ function ContactsModal({ customer, onClose }) {
                         >✕</button>
                     </div>
 
-                    {/* ── SCROLLABLE BODY ── */}
-                    <div style={{ overflowY: "auto", flex: 1, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 22 }}>
+                    {/* ── BODY — flex column, fills remaining height, clips overflow ── */}
+                    <div
+                        style={{
+                            flex: 1,
+                            minHeight: 0,           /* critical: allows flex child to shrink below content size */
+                            padding: "20px 22px 0 22px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0,
+                            overflow: "hidden",
+                        }}
+                    >
 
-                        {/* ── ADD CONTACT FORM (ADMIN ONLY) ── */}
+                        {/* ── ADD CONTACT FORM — fixed, never scrolls ── */}
                         {role === "ADMIN" && (
                             <div style={{
                                 background: "#fafafa",
                                 border: "1px solid #e5e7eb",
                                 borderRadius: 12, overflow: "hidden",
+                                flexShrink: 0,
+                                marginBottom: 22,
                             }}>
                                 <div style={{
                                     padding: "12px 16px",
@@ -236,11 +254,18 @@ function ContactsModal({ customer, onClose }) {
                             </div>
                         )}
 
-                        {/* ── CONTACT LIST ── */}
-                        <div>
+                        {/* ── CONTACT LIST SECTION — fills remaining space, scrolls independently ── */}
+                        <div style={{
+                            flex: 1,
+                            minHeight: 0,           /* critical: allows this section to shrink and scroll */
+                            display: "flex",
+                            flexDirection: "column",
+                        }}>
+                            {/* list header — fixed within section */}
                             <div style={{
                                 display: "flex", alignItems: "center", justifyContent: "space-between",
                                 marginBottom: 12,
+                                flexShrink: 0,
                             }}>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
                                     Contact List
@@ -275,8 +300,22 @@ function ContactsModal({ customer, onClose }) {
                                 </div>
                             )}
 
-                            {/* list */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {/* scrollable list — ONLY this area scrolls */}
+                            <div
+                                className="crm-contact-list"
+                                style={{
+                                    flex: 1,
+                                    minHeight: 0,       /* critical: enables overflow scroll within flex */
+                                    overflowY: "auto",
+                                    overflowX: "hidden",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 8,
+                                    paddingRight: 4,
+                                    scrollbarWidth: "thin",
+                                    scrollbarColor: "#e5e7eb transparent",
+                                }}
+                            >
                                 {contacts.map((c, i) => {
                                     const ac = avatarColor(c.name);
                                     const isHovered = hoveredId === c.id;
@@ -294,6 +333,7 @@ function ContactsModal({ customer, onClose }) {
                                                 transition: "background 0.12s, box-shadow 0.12s",
                                                 boxShadow: isHovered ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
                                                 animation: `cardIn 0.2s ease ${i * 0.05}s both`,
+                                                flexShrink: 0,
                                             }}
                                         >
                                             {/* avatar */}
@@ -343,10 +383,10 @@ function ContactsModal({ customer, onClose }) {
                         </div>
                     </div>
 
-                    {/* ── TOAST ── */}
+                    {/* ── TOAST — fixed at bottom, never scrolls ── */}
                     {toast.msg && (
                         <div style={{
-                            margin: "0 22px 18px",
+                            margin: "12px 22px 18px",
                             padding: "11px 16px",
                             borderRadius: 9,
                             fontSize: 13, fontWeight: 500,

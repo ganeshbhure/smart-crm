@@ -20,38 +20,45 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
+    http
+        // ❌ Disable CSRF only for H2
+        .csrf(csrf -> csrf.disable())
 
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+        // 🔥 VERY IMPORTANT (iframe fix)
+        .headers(headers -> headers
+            .frameOptions(frame -> frame.sameOrigin())
+        )
 
-                .authorizeHttpRequests(auth -> auth
+        .authorizeHttpRequests(auth -> auth
 
-                        // 🔓 Public APIs
-                        .requestMatchers("/api/auth/**").permitAll()
+            // 🔓 Public APIs
+            .requestMatchers("/api/auth/**").permitAll()
 
-                        // 🔥 ONLY ADMIN CAN DELETE
-                        .requestMatchers(HttpMethod.DELETE, "/api/customers/**")
-                        .hasAuthority("ROLE_ADMIN")
+            // 🔥 ALLOW H2
+            .requestMatchers("/h2-console/**").permitAll()
 
-                        // 🔐 All customer APIs require login
-                        .requestMatchers("/api/customers/**").authenticated()
+            // 🔥 ADMIN DELETE
+            .requestMatchers(HttpMethod.DELETE, "/api/customers/**")
+            .hasAuthority("ROLE_ADMIN")
 
-                        // 🔐 Everything else secured
-                        .anyRequest().authenticated()
-                )
+            // 🔐 secured APIs
+            .requestMatchers("/api/customers/**").authenticated()
 
-                .cors(cors -> {})
+            .anyRequest().authenticated()
+        )
 
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        .sessionManagement(session ->
+            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        )
 
-        return http.build();
-    }
+        .cors(cors -> {})
 
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+    return http.build();
+}
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

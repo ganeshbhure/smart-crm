@@ -62,6 +62,10 @@ public class NoteService {
         return noteRepository.save(note);
     }
 
+    public long countOpenNotes() {
+    return noteRepository.countByStatus("OPEN");
+}
+
     // ✅ DELETE NOTE
     public void deleteNote(Long noteId) {
 

@@ -26,6 +26,8 @@ public class JwtFilter extends OncePerRequestFilter {
         this.userRepository = userRepository;
     }
 
+    
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -33,11 +35,18 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         // ✅ Skip auth endpoints
-        String path = request.getRequestURI();
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+       String path = request.getRequestURI();
+
+// 🔥 ALLOW AUTH + H2
+if (path.contains("/api/auth/login") ||
+    path.contains("/api/auth/register") ||
+    path.contains("/h2-console")) {
+
+    filterChain.doFilter(request, response);
+    return;
+}
+
+        
 
         String authHeader = request.getHeader("Authorization");
         String token = null;

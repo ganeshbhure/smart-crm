@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { loginUser } from "../services/api";
+import {useState} from "react";
+import {useNavigate} from "react-router-dom";
+import {loginUser} from "../services/api";
 
 export default function Login() {
-    const [email, setEmail]       = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [loading, setLoading]   = useState(false);
-    const [error, setError]       = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
     const navigate = useNavigate();
 
@@ -60,18 +60,19 @@ export default function Login() {
                 }}>
 
                     {/* logo + brand */}
-                    <div style={{ textAlign: "center", marginBottom: 32 }}>
+                    <div style={{textAlign: "center", marginBottom: 32}}>
                         <div style={{
                             width: 48, height: 48, borderRadius: 12,
                             background: "#4f46e5",
                             display: "inline-flex", alignItems: "center", justifyContent: "center",
                             fontSize: 22, color: "#fff", fontWeight: 800,
                             marginBottom: 14,
-                        }}>S</div>
-                        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "#111827" }}>
+                        }}>S
+                        </div>
+                        <h1 style={{fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "#111827"}}>
                             Smart CRM
                         </h1>
-                        <p style={{ fontSize: 13.5, color: "#6b7280", marginTop: 4 }}>
+                        <p style={{fontSize: 13.5, color: "#6b7280", marginTop: 4}}>
                             Sign in to your account
                         </p>
                     </div>
@@ -106,7 +107,7 @@ export default function Login() {
                         )}
 
                         {/* email */}
-                        <div style={{ marginBottom: 16 }}>
+                        <div style={{marginBottom: 16}}>
                             <label style={{
                                 display: "block",
                                 fontSize: 12,
@@ -120,7 +121,10 @@ export default function Login() {
                                 type="email"
                                 placeholder="you@company.com"
                                 value={email}
-                                onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    setError("");
+                                }}
                                 onKeyDown={handleKeyDown}
                                 style={{
                                     width: "100%",
@@ -137,7 +141,7 @@ export default function Login() {
                         </div>
 
                         {/* password */}
-                        <div style={{ marginBottom: 24 }}>
+                        <div style={{marginBottom: 24}}>
                             <label style={{
                                 display: "block",
                                 fontSize: 12,
@@ -151,7 +155,10 @@ export default function Login() {
                                 type="password"
                                 placeholder="Enter your password"
                                 value={password}
-                                onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    setError("");
+                                }}
                                 onKeyDown={handleKeyDown}
                                 style={{
                                     width: "100%",
@@ -191,8 +198,28 @@ export default function Login() {
                     </div>
 
                     {/* footer note */}
-                    <p style={{ textAlign: "center", fontSize: 12.5, color: "#9ca3af", marginTop: 20 }}>
+                    <p style={{textAlign: "center", fontSize: 12.5, color: "#9ca3af", marginTop: 20}}>
                         Smart CRM · Secure login
+                    </p>
+                    <p
+                        style={{
+                            textAlign: "center",
+                            fontSize: "13px",
+                            color: "#6b7280",
+                            marginTop: 18,
+                        }}
+                    >
+                        Don&apos;t have an account?{" "}
+                        <span
+                            onClick={() => navigate("/register")}
+                            style={{
+                                color: "#4f46e5",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                            }}
+                        >
+        Register
+    </span>
                     </p>
                 </div>
             </div>

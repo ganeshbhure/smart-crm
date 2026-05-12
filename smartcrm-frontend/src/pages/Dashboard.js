@@ -10,7 +10,7 @@ import {
 import ContactsModal from "../components/ContactsModal";
 import NotesModal from "../components/NotesModal";
 import ReactDOM from "react-dom";
-// ... rest of your imports stay the same
+import Layout from "../components/Layout";
 
 /* ─── colour helpers ─────────────────────────────────────── */
 const AVATAR_COLORS = [
@@ -116,19 +116,10 @@ function Toast({ message, type, onClose }) {
         }}>
             <span style={{ flex: 1 }}>{message}</span>
             <span onClick={onClose} style={{ cursor: "pointer", fontSize: 16, lineHeight: 1, opacity: 0.6 }}>✕</span>
-            <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
         </div>
     );
 }
 
-/* ─── ActionMenu ─────────────────────────────────────────── */
-/*
- * Single ⋯ trigger opens a polished dropdown.
- * Contacts + Notes are always visible.
- * Edit + Delete appear only for ADMIN, separated by a divider.
- * Closes on outside click via a mousedown listener.
- * Zero logic changes — all handlers are passed straight through.
- */
 /* ─── ActionMenu — Portal-based, always on screen ─── */
 function ActionMenu({ customer, role, onContacts, onNotes, onEdit, onDelete }) {
     const [open, setOpen]     = useState(false);
@@ -144,21 +135,18 @@ function ActionMenu({ customer, role, onContacts, onNotes, onEdit, onDelete }) {
 
         const rect = btnRef.current.getBoundingClientRect();
 
-        // Horizontal: prefer right-aligned, but clamp to screen left edge
         const rightAligned = rect.right - MENU_WIDTH;
         const left = Math.max(8, rightAligned);
 
-        // Vertical: open downward if room, otherwise upward
         const spaceBelow = window.innerHeight - rect.bottom - 8;
         const top = spaceBelow >= MENU_HEIGHT
-            ? rect.bottom + 6                         // open down
-            : rect.top - MENU_HEIGHT - 6;             // open up
+            ? rect.bottom + 6
+            : rect.top - MENU_HEIGHT - 6;
 
         setCoords({ top: Math.max(8, top), left });
         setOpen(true);
     };
 
-    // Close on outside click
     useEffect(() => {
         if (!open) return;
         const down = (e) => {
@@ -171,7 +159,6 @@ function ActionMenu({ customer, role, onContacts, onNotes, onEdit, onDelete }) {
         return () => document.removeEventListener("mousedown", down);
     }, [open]);
 
-    // Close on any scroll
     useEffect(() => {
         if (!open) return;
         const s = () => setOpen(false);
@@ -203,7 +190,7 @@ function ActionMenu({ customer, role, onContacts, onNotes, onEdit, onDelete }) {
         <div
             ref={menuRef}
             style={{
-                position:  "fixed",          // fixed to viewport
+                position:  "fixed",
                 top:       coords.top,
                 left:      coords.left,
                 width:     MENU_WIDTH,
@@ -211,18 +198,11 @@ function ActionMenu({ customer, role, onContacts, onNotes, onEdit, onDelete }) {
                 border:    "1px solid #e5e7eb",
                 borderRadius: 10,
                 boxShadow: "0 8px 28px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-                zIndex:    99999,            // above everything
+                zIndex:    99999,
                 padding:   "5px",
                 animation: "menuIn 0.14s ease",
             }}
         >
-            <style>{`
-                @keyframes menuIn {
-                    from { opacity:0; transform:translateY(-5px); }
-                    to   { opacity:1; transform:translateY(0);    }
-                }
-            `}</style>
-
             <MenuItem icon="👥" label="View Contacts" onClick={onContacts} color="#4f46e5" bg="#eef2ff" />
             <MenuItem icon="📝" label="View Notes"    onClick={onNotes} />
 
@@ -238,7 +218,6 @@ function ActionMenu({ customer, role, onContacts, onNotes, onEdit, onDelete }) {
 
     return (
         <>
-            {/* ··· trigger button */}
             <button
                 ref={btnRef}
                 onClick={handleOpen}
@@ -259,7 +238,6 @@ function ActionMenu({ customer, role, onContacts, onNotes, onEdit, onDelete }) {
                 ···
             </button>
 
-            {/* Portal: renders directly into document.body — zero CSS inheritance */}
             {ReactDOM.createPortal(menu, document.body)}
         </>
     );
@@ -289,7 +267,6 @@ export default function Dashboard() {
     const [phone, setPhone]                               = useState("");
     const [company, setCompany]                           = useState("");
     const [toast, setToast]                               = useState({ message: "", type: "info" });
-    const [activeNav, setActiveNav]                       = useState("dashboard");
     const [hoveredRow, setHoveredRow]                     = useState(null);
     const [totalCustomers, setTotalCustomers]             = useState(0);
     const [selectedCustomer, setSelectedCustomer]         = useState(null);
@@ -411,406 +388,287 @@ export default function Dashboard() {
         }
     };
 
-    /* ─── NAV items ─── */
-    const navItems = [
-        { id: "dashboard", icon: "⊞", label: "Dashboard" },
-        { id: "customers", icon: "👥", label: "Customers" },
-        { id: "analytics", icon: "📊", label: "Analytics" },
-        { id: "settings",  icon: "⚙",  label: "Settings"  },
-    ];
+    /* ── topbar right slot: Add Customer + Logout ── */
+    const topbarRight = (
+        <>
+            <Btn variant="primary" onClick={toggleForm}>
+                {formOpen ? "✕  Close form" : "+ Add Customer"}
+            </Btn>
+            <Btn variant="ghost" onClick={handleLogout}>Logout</Btn>
+        </>
+    );
 
     /* ─── render ─── */
     return (
-        <>
-            <style>{`
-                *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-                body { background: #f4f5f7; color: #111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-                input:focus { outline: none; border-color: #4f46e5 !important; box-shadow: 0 0 0 3px rgba(79,70,229,0.12); }
-                ::-webkit-scrollbar { width: 6px; }
-                ::-webkit-scrollbar-track { background: transparent; }
-                ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
-                @keyframes fadeIn  { from { opacity:0; transform:translateY(5px);  } to { opacity:1; transform:translateY(0); } }
-                @keyframes fadeDown{ from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
-            `}</style>
+        <Layout topbarRight={topbarRight}>
+            <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: 22 }}>
 
-            <div style={{ display: "flex", minHeight: "100vh" }}>
-
-                {/* ═══ SIDEBAR ═══ */}
-                <aside style={{
-                    width: 230, background: "#fff",
-                    borderRight: "1px solid #e5e7eb",
-                    display: "flex", flexDirection: "column",
-                    padding: "24px 14px",
-                    position: "sticky", top: 0, height: "100vh", flexShrink: 0,
-                }}>
-                    <div style={{ padding: "4px 10px 28px", display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{
-                            width: 32, height: 32, borderRadius: 8, background: "#4f46e5",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 15, color: "#fff", fontWeight: 800,
-                        }}>S</div>
-                        <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.4px" }}>Smart CRM</span>
-                    </div>
-
-                    <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                        {navItems.map((item) => {
-                            const active = activeNav === item.id;
-                            return (
-                                <button key={item.id} onClick={() => setActiveNav(item.id)} style={{
-                                    display: "flex", alignItems: "center", gap: 10,
-                                    padding: "9px 12px", borderRadius: 8, border: "none",
-                                    cursor: "pointer", fontFamily: "inherit", fontSize: 13.5,
-                                    fontWeight: active ? 600 : 400,
-                                    background: active ? "#eef2ff" : "transparent",
-                                    color: active ? "#4f46e5" : "#6b7280",
-                                    transition: "all 0.15s ease", textAlign: "left",
-                                }}>
-                                    <span style={{ fontSize: 15 }}>{item.icon}</span>
-                                    {item.label}
-                                    {active && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "#4f46e5" }} />}
-                                </button>
-                            );
-                        })}
-                    </nav>
-
-                    <div style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "10px 12px", borderRadius: 10,
-                        background: "#f9fafb", border: "1px solid #e5e7eb",
-                    }}>
-                        <Avatar name={role === "ADMIN" ? "Admin" : "User"} size={34} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {role === "ADMIN" ? "Admin User" : "User"}
-                            </div>
-                            <Badge variant={role === "ADMIN" ? "admin" : "user"}>{role || "USER"}</Badge>
-                        </div>
-                    </div>
-                </aside>
-
-                {/* ═══ MAIN ═══ */}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-
-                    {/* top bar */}
-                    <header style={{
-                        background: "#fff", borderBottom: "1px solid #e5e7eb",
-                        padding: "0 28px", height: 60,
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        position: "sticky", top: 0, zIndex: 100,
-                    }}>
-                        <div>
-                            <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.4px" }}>Dashboard</h1>
-                            <p style={{ fontSize: 12, color: "#6b7280", marginTop: 1 }}>Manage your customer base</p>
-                        </div>
-                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                            <Btn variant="primary" onClick={toggleForm}>
-                                {formOpen ? "✕  Close form" : "+ Add Customer"}
-                            </Btn>
-                            <Btn variant="ghost" onClick={handleLogout}>Logout</Btn>
-                        </div>
-                    </header>
-
-                    {/* page content */}
-                    <main style={{ flex: 1, padding: "28px", display: "flex", flexDirection: "column", gap: 22 }}>
-
-                        {/* stat cards */}
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-                            {[
-                                { label: "Total customers", value: totalCustomers, color: "#4f46e5" },
-                                { label: "Current page",    value: page + 1,       color: "#0e7490" },
-                                { label: "Role",            value: role || "—",    color: "#92400e" },
-                            ].map((s) => (
-                                <div key={s.label} style={{
-                                    background: "#fff", border: "1px solid #e5e7eb",
-                                    borderRadius: 12, padding: "18px 20px",
-                                    borderTop: `3px solid ${s.color}`,
-                                }}>
-                                    <p style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.6px" }}>{s.label}</p>
-                                    <p style={{ fontSize: 28, fontWeight: 800, color: s.color, marginTop: 6, letterSpacing: "-1px" }}>{s.value}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* add / edit form */}
-                        {formOpen && (
-                            <div style={{
-                                background: "#fff", border: "1px solid #e5e7eb",
-                                borderRadius: 14, overflow: "hidden",
-                                boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
-                                animation: "fadeDown 0.2s ease",
-                            }}>
-                                <div style={{
-                                    padding: "14px 22px", borderBottom: "1px solid #f3f4f6",
-                                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                                    background: "#fafafa",
-                                }}>
-                                    <span style={{ fontWeight: 600, fontSize: 14 }}>
-                                        {editingCustomer ? "✏️  Edit Customer" : "➕  New Customer"}
-                                    </span>
-                                    {editingCustomer && <Btn small variant="ghost" onClick={clearForm}>Clear</Btn>}
-                                </div>
-                                <div style={{ padding: "22px" }}>
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                                        {[
-                                            { label: "Full name *",     value: name,    set: setName,    ph: "Jane Doe",         type: "text"  },
-                                            { label: "Email address *", value: email,   set: setEmail,   ph: "jane@company.com", type: "email" },
-                                            { label: "Phone",           value: phone,   set: setPhone,   ph: "+91 98765 43210",  type: "tel"   },
-                                            { label: "Company",         value: company, set: setCompany, ph: "Acme Corp",        type: "text"  },
-                                        ].map((field) => (
-                                            <div key={field.label} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                                                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{field.label}</label>
-                                                <input
-                                                    type={field.type} value={field.value}
-                                                    placeholder={field.ph}
-                                                    onChange={(e) => field.set(e.target.value)}
-                                                    style={{
-                                                        padding: "9px 13px", borderRadius: 8,
-                                                        border: "1px solid #d1d5db", fontSize: 13.5,
-                                                        color: "#111827", background: "#fff",
-                                                        transition: "border-color 0.15s", fontFamily: "inherit",
-                                                    }}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                                        <Btn variant="ghost" onClick={toggleForm}>Cancel</Btn>
-                                        <Btn variant="primary" onClick={handleSubmit} disabled={submitting}>
-                                            {submitting ? "Saving…" : (editingCustomer ? "Update Customer" : "Add Customer")}
-                                        </Btn>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── customers panel ── */}
-                        <div style={{
+                {/* stat cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+                    {[
+                        { label: "Total customers", value: totalCustomers, color: "#4f46e5" },
+                        { label: "Current page",    value: page + 1,       color: "#0e7490" },
+                        { label: "Role",            value: role || "—",    color: "#92400e" },
+                    ].map((s) => (
+                        <div key={s.label} style={{
                             background: "#fff", border: "1px solid #e5e7eb",
-                            borderRadius: 14, overflow: "hidden",
+                            borderRadius: 12, padding: "18px 20px",
+                            borderTop: `3px solid ${s.color}`,
                         }}>
-                            {/* panel header + search */}
-                            <div style={{
-                                padding: "14px 20px", borderBottom: "1px solid #f3f4f6",
-                                display: "flex", alignItems: "center", justifyContent: "space-between",
-                                gap: 14, flexWrap: "wrap", background: "#fafafa",
-                            }}>
-                                <span style={{ fontWeight: 600, fontSize: 14 }}>
-                                    Customers <span style={{ fontWeight: 400, color: "#6b7280", fontSize: 13 }}>({customers.length})</span>
-                                </span>
-                                <div style={{ position: "relative", flex: "0 0 260px" }}>
-                                    <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 14, pointerEvents: "none" }}>🔍</span>
-                                    <input
-                                        value={search}
-                                        onChange={(e) => handleSearch(e.target.value)}
-                                        placeholder="Search name or email…"
-                                        style={{
-                                            width: "100%", padding: "8px 12px 8px 34px",
-                                            borderRadius: 8, border: "1px solid #d1d5db",
-                                            fontSize: 13, fontFamily: "inherit",
-                                            color: "#111827", background: "#fff",
-                                            transition: "border-color 0.15s",
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* ── table head ──
-                                5 cols: Customer | Email | Phone | Company | Actions (fixed 52px)
-                                minmax prevents any column from squashing its neighbour.         */}
-                            <div style={{
-                                display: "grid",
-                                gridTemplateColumns: "minmax(140px,2fr) minmax(160px,2fr) minmax(110px,1.2fr) minmax(120px,1.2fr) 52px",
-                                padding: "10px 20px",
-                                background: "#f9fafb", borderBottom: "1px solid #f3f4f6",
-                                fontSize: 11, fontWeight: 700, color: "#6b7280",
-                                textTransform: "uppercase", letterSpacing: "0.6px",
-                            }}>
-                                <span>Customer</span>
-                                <span>Email</span>
-                                <span>Phone</span>
-                                <span>Company</span>
-                                <span style={{ textAlign: "center" }}>Actions</span>
-                            </div>
-
-                            {/* loading / error / empty */}
-                            {loading && (
-                                <div style={{ padding: "42px 20px", textAlign: "center", color: "#6b7280", fontSize: 14 }}>
-                                    <div style={{ fontSize: 26, marginBottom: 10 }}>⏳</div>
-                                    Loading customers…
-                                </div>
-                            )}
-                            {!loading && error && (
-                                <div style={{ padding: "28px 20px", textAlign: "center", color: "#c0395d", fontSize: 14, background: "#fff0f3" }}>
-                                    ⚠️ {error}
-                                </div>
-                            )}
-                            {!loading && !error && customers.length === 0 && (
-                                <div style={{ padding: "52px 20px", textAlign: "center", color: "#9ca3af", fontSize: 14 }}>
-                                    <div style={{ fontSize: 34, marginBottom: 10 }}>👥</div>
-                                    No customers found.
-                                </div>
-                            )}
-
-                            {/* ── rows ── */}
-                            {!loading && customers.map((c, i) => (
-                                <div
-                                    key={c.id}
-                                    onMouseEnter={() => setHoveredRow(c.id)}
-                                    onMouseLeave={() => setHoveredRow(null)}
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "minmax(140px,2fr) minmax(160px,2fr) minmax(110px,1.2fr) minmax(120px,1.2fr) 52px",
-                                        padding: "13px 20px",
-                                        borderBottom: i < customers.length - 1 ? "1px solid #f3f4f6" : "none",
-                                        alignItems: "center",
-                                        background: hoveredRow === c.id ? "#fafafa" : "#fff",
-                                        transition: "background 0.12s ease",
-                                        animation: `fadeIn 0.25s ease ${i * 0.04}s both`,
-                                    }}
-                                >
-                                    {/* CUSTOMER */}
-                                    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                                        <Avatar name={c.name} size={36} />
-                                        <span style={{ fontWeight: 600, fontSize: 14, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                            {c.name}
-                                        </span>
-                                    </div>
-
-                                    {/* EMAIL */}
-                                    <span style={{ fontSize: 13, color: "#4b5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 12 }}>
-                                        {c.email}
-                                    </span>
-
-                                    {/* PHONE */}
-                                    <span style={{ fontSize: 13, color: "#6b7280" }}>
-                                        {c.phone || <em style={{ opacity: 0.4 }}>—</em>}
-                                    </span>
-
-                                    {/* COMPANY */}
-                                    <span>
-                                        {c.company
-                                            ? <Badge variant="success">{c.company}</Badge>
-                                            : <em style={{ fontSize: 13, color: "#9ca3af", fontStyle: "normal" }}>—</em>
-                                        }
-                                    </span>
-
-                                    {/* ── ACTIONS — single ⋯ dropdown ── */}
-                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                                        <ActionMenu
-                                            customer={c}
-                                            role={role}
-                                            onContacts={() => setSelectedCustomer(c)}
-                                            onNotes={()    => setSelectedCustomerForNotes(c)}
-                                            onEdit={()     => handleEdit(c)}
-                                            onDelete={()   => handleDelete(c.id)}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-
-                            {/* pagination */}
-                            <div style={{
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                gap: 14, padding: "14px 20px",
-                                borderTop: "1px solid #f3f4f6", background: "#fafafa",
-                            }}>
-                                <Btn small variant="ghost" onClick={() => setPage((p) => p - 1)} disabled={page === 0}>
-                                    ← Prev
-                                </Btn>
-                                <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
-                                    Page <strong style={{ color: "#111827" }}>{page + 1}</strong>
-                                </span>
-                                <Btn small variant="ghost" onClick={() => setPage((p) => p + 1)}>
-                                    Next →
-                                </Btn>
-                            </div>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.6px" }}>{s.label}</p>
+                            <p style={{ fontSize: 28, fontWeight: 800, color: s.color, marginTop: 6, letterSpacing: "-1px" }}>{s.value}</p>
                         </div>
-                    </main>
+                    ))}
                 </div>
 
-                {/* modals — unchanged */}
-                {selectedCustomer && (
-                    <ContactsModal
-                        customer={selectedCustomer}
-                        onClose={() => setSelectedCustomer(null)}
-                    />
-                )}
-                {selectedCustomerForNotes && (
-                    <NotesModal
-                        customer={selectedCustomerForNotes}
-                        onClose={() => setSelectedCustomerForNotes(null)}
-                    />
-                )}
-
-                {deleteCustomerId && (
-                    <div style={styles.overlay}>
-                        <div style={styles.modal}>
-
-                            <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
-
-                            <h3 style={{ marginBottom: 6 }}>Delete Customer</h3>
-
-                            <p style={{ color: "#6b7280", fontSize: 14 }}>
-                                This action cannot be undone. This will permanently delete this customer.
-                            </p>
-
-                            <div style={{
-                                marginTop: 20,
-                                display: "flex",
-                                justifyContent: "flex-end",
-                                gap: 10
-                            }}>
-                                <button onClick={cancelDelete} style={styles.cancelBtn}>
-                                    Cancel
-                                </button>
-
-                                <button onClick={confirmDelete} style={styles.deleteBtn}>
-                                    Delete
-                                </button>
+                {/* add / edit form */}
+                {formOpen && (
+                    <div style={{
+                        background: "#fff", border: "1px solid #e5e7eb",
+                        borderRadius: 14, overflow: "hidden",
+                        boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                        animation: "fadeDown 0.2s ease",
+                    }}>
+                        <div style={{
+                            padding: "14px 22px", borderBottom: "1px solid #f3f4f6",
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            background: "#fafafa",
+                        }}>
+                            <span style={{ fontWeight: 600, fontSize: 14 }}>
+                                {editingCustomer ? "✏️  Edit Customer" : "➕  New Customer"}
+                            </span>
+                            {editingCustomer && <Btn small variant="ghost" onClick={clearForm}>Clear</Btn>}
+                        </div>
+                        <div style={{ padding: "22px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                {[
+                                    { label: "Full name *",     value: name,    set: setName,    ph: "Jane Doe",         type: "text"  },
+                                    { label: "Email address *", value: email,   set: setEmail,   ph: "jane@company.com", type: "email" },
+                                    { label: "Phone",           value: phone,   set: setPhone,   ph: "+91 98765 43210",  type: "tel"   },
+                                    { label: "Company",         value: company, set: setCompany, ph: "Acme Corp",        type: "text"  },
+                                ].map((field) => (
+                                    <div key={field.label} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                        <label style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{field.label}</label>
+                                        <input
+                                            type={field.type} value={field.value}
+                                            placeholder={field.ph}
+                                            onChange={(e) => field.set(e.target.value)}
+                                            style={{
+                                                padding: "9px 13px", borderRadius: 8,
+                                                border: "1px solid #d1d5db", fontSize: 13.5,
+                                                color: "#111827", background: "#fff",
+                                                transition: "border-color 0.15s", fontFamily: "inherit",
+                                            }}
+                                        />
+                                    </div>
+                                ))}
                             </div>
-
+                            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                                <Btn variant="ghost" onClick={toggleForm}>Cancel</Btn>
+                                <Btn variant="primary" onClick={handleSubmit} disabled={submitting}>
+                                    {submitting ? "Saving…" : (editingCustomer ? "Update Customer" : "Add Customer")}
+                                </Btn>
+                            </div>
                         </div>
                     </div>
                 )}
+
+                {/* ── customers panel ── */}
+                <div style={{
+                    background: "#fff", border: "1px solid #e5e7eb",
+                    borderRadius: 14, overflow: "hidden",
+                }}>
+                    {/* panel header + search */}
+                    <div style={{
+                        padding: "14px 20px", borderBottom: "1px solid #f3f4f6",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        gap: 14, flexWrap: "wrap", background: "#fafafa",
+                    }}>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>
+                            Customers <span style={{ fontWeight: 400, color: "#6b7280", fontSize: 13 }}>({customers.length})</span>
+                        </span>
+                        <div style={{ position: "relative", flex: "0 0 260px" }}>
+                            <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 14, pointerEvents: "none" }}>🔍</span>
+                            <input
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                placeholder="Search name or email…"
+                                style={{
+                                    width: "100%", padding: "8px 12px 8px 34px",
+                                    borderRadius: 8, border: "1px solid #d1d5db",
+                                    fontSize: 13, fontFamily: "inherit",
+                                    color: "#111827", background: "#fff",
+                                    transition: "border-color 0.15s",
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* table head */}
+                    <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(140px,2fr) minmax(160px,2fr) minmax(110px,1.2fr) minmax(120px,1.2fr) 52px",
+                        padding: "10px 20px",
+                        background: "#f9fafb", borderBottom: "1px solid #f3f4f6",
+                        fontSize: 11, fontWeight: 700, color: "#6b7280",
+                        textTransform: "uppercase", letterSpacing: "0.6px",
+                    }}>
+                        <span>Customer</span>
+                        <span>Email</span>
+                        <span>Phone</span>
+                        <span>Company</span>
+                        <span style={{ textAlign: "center" }}>Actions</span>
+                    </div>
+
+                    {/* loading / error / empty */}
+                    {loading && (
+                        <div style={{ padding: "42px 20px", textAlign: "center", color: "#6b7280", fontSize: 14 }}>
+                            <div style={{ fontSize: 26, marginBottom: 10 }}>⏳</div>
+                            Loading customers…
+                        </div>
+                    )}
+                    {!loading && error && (
+                        <div style={{ padding: "28px 20px", textAlign: "center", color: "#c0395d", fontSize: 14, background: "#fff0f3" }}>
+                            ⚠️ {error}
+                        </div>
+                    )}
+                    {!loading && !error && customers.length === 0 && (
+                        <div style={{ padding: "52px 20px", textAlign: "center", color: "#9ca3af", fontSize: 14 }}>
+                            <div style={{ fontSize: 34, marginBottom: 10 }}>👥</div>
+                            No customers found.
+                        </div>
+                    )}
+
+                    {/* rows */}
+                    {!loading && customers.map((c, i) => (
+                        <div
+                            key={c.id}
+                            onMouseEnter={() => setHoveredRow(c.id)}
+                            onMouseLeave={() => setHoveredRow(null)}
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "minmax(140px,2fr) minmax(160px,2fr) minmax(110px,1.2fr) minmax(120px,1.2fr) 52px",
+                                padding: "13px 20px",
+                                borderBottom: i < customers.length - 1 ? "1px solid #f3f4f6" : "none",
+                                alignItems: "center",
+                                background: hoveredRow === c.id ? "#fafafa" : "#fff",
+                                transition: "background 0.12s ease",
+                                animation: `fadeIn 0.25s ease ${i * 0.04}s both`,
+                            }}
+                        >
+                            {/* CUSTOMER */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                                <Avatar name={c.name} size={36} />
+                                <span style={{ fontWeight: 600, fontSize: 14, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {c.name}
+                                </span>
+                            </div>
+
+                            {/* EMAIL */}
+                            <span style={{ fontSize: 13, color: "#4b5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 12 }}>
+                                {c.email}
+                            </span>
+
+                            {/* PHONE */}
+                            <span style={{ fontSize: 13, color: "#6b7280" }}>
+                                {c.phone || <em style={{ opacity: 0.4 }}>—</em>}
+                            </span>
+
+                            {/* COMPANY */}
+                            <span>
+                                {c.company
+                                    ? <Badge variant="success">{c.company}</Badge>
+                                    : <em style={{ fontSize: 13, color: "#9ca3af", fontStyle: "normal" }}>—</em>
+                                }
+                            </span>
+
+                            {/* ACTIONS */}
+                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                                <ActionMenu
+                                    customer={c}
+                                    role={role}
+                                    onContacts={() => setSelectedCustomer(c)}
+                                    onNotes={()    => setSelectedCustomerForNotes(c)}
+                                    onEdit={()     => handleEdit(c)}
+                                    onDelete={()   => handleDelete(c.id)}
+                                />
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* pagination */}
+                    <div style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        gap: 14, padding: "14px 20px",
+                        borderTop: "1px solid #f3f4f6", background: "#fafafa",
+                    }}>
+                        <Btn small variant="ghost" onClick={() => setPage((p) => p - 1)} disabled={page === 0}>
+                            ← Prev
+                        </Btn>
+                        <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
+                            Page <strong style={{ color: "#111827" }}>{page + 1}</strong>
+                        </span>
+                        <Btn small variant="ghost" onClick={() => setPage((p) => p + 1)}>
+                            Next →
+                        </Btn>
+                    </div>
+                </div>
             </div>
 
+            {/* modals — unchanged */}
+            {selectedCustomer && (
+                <ContactsModal
+                    customer={selectedCustomer}
+                    onClose={() => setSelectedCustomer(null)}
+                />
+            )}
+            {selectedCustomerForNotes && (
+                <NotesModal
+                    customer={selectedCustomerForNotes}
+                    onClose={() => setSelectedCustomerForNotes(null)}
+                />
+            )}
+
+            {deleteCustomerId && (
+                <div style={modalStyles.overlay}>
+                    <div style={modalStyles.modal}>
+                        <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
+                        <h3 style={{ marginBottom: 6 }}>Delete Customer</h3>
+                        <p style={{ color: "#6b7280", fontSize: 14 }}>
+                            This action cannot be undone. This will permanently delete this customer.
+                        </p>
+                        <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                            <button onClick={cancelDelete} style={modalStyles.cancelBtn}>Cancel</button>
+                            <button onClick={confirmDelete} style={modalStyles.deleteBtn}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Toast message={toast.message} type={toast.type} onClose={clearToast} />
-        </>
+        </Layout>
     );
 }
 
-const styles = {
+const modalStyles = {
     overlay: {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
+        position: "fixed", top: 0, left: 0,
+        width: "100%", height: "100%",
         background: "rgba(0,0,0,0.4)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 9999
+        display: "flex", justifyContent: "center", alignItems: "center",
+        zIndex: 9999,
     },
     modal: {
-        background: "#fff",
-        padding: "20px",
-        borderRadius: "10px",
-        width: "340px"
+        background: "#fff", padding: "20px",
+        borderRadius: "10px", width: "340px",
     },
     cancelBtn: {
-        padding: "8px 14px",
-        border: "1px solid #ccc",
-        borderRadius: "6px",
-        background: "#fff",
-        cursor: "pointer"
+        padding: "8px 14px", border: "1px solid #ccc",
+        borderRadius: "6px", background: "#fff", cursor: "pointer",
     },
     deleteBtn: {
-        padding: "8px 14px",
-        borderRadius: "6px",
-        background: "#ef4444",
-        color: "#fff",
-        border: "none",
-        cursor: "pointer"
-    }
+        padding: "8px 14px", borderRadius: "6px",
+        background: "#ef4444", color: "#fff",
+        border: "none", cursor: "pointer",
+    },
 };

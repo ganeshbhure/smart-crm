@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b98b36f3-c5a4-47b6-a148-7b1335b2008e" name="Changes" comment="" />
+    <list default="true" id="b98b36f3-c5a4-47b6-a148-7b1335b2008e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../backend/smartcrm-backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/smartcrm-backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/ContactsModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/ContactsModal.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Analytics.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Analytics.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Dashboard.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Dashboard.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Login.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Login.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Settings.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Settings.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="friend-dev" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
@@ -20,7 +36,10 @@
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;Node.js.Register.js.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;ganesh-dev&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/ganesh/Projects/SmartCRM/smartcrm-frontend&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
@@ -51,6 +70,12 @@
       <workItem from="1777875924007" duration="6925000" />
       <workItem from="1777929448164" duration="4920000" />
       <workItem from="1778002312909" duration="1402000" />
+      <workItem from="1778007684424" duration="939000" />
+      <workItem from="1778086128770" duration="1870000" />
+      <workItem from="1778321147013" duration="516000" />
+      <workItem from="1778330349085" duration="3703000" />
+      <workItem from="1778403164908" duration="453000" />
+      <workItem from="1778505742569" duration="3464000" />
     </task>
     <servers />
   </component>

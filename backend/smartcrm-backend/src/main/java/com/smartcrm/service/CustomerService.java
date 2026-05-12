@@ -64,6 +64,10 @@ public class CustomerService {
         return convertToResponse(customerRepository.save(customer));
     }
 
+    public long countCustomers() {
+    return customerRepository.count();
+}
+
     public void deleteCustomer(Long id){
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
@@ -77,8 +81,14 @@ public class CustomerService {
             return new ArrayList<>();
         }
 
-        List<Customer> customers = customerRepository.findByNameContainingIgnoreCase(name.trim());
-
+        List<Customer> customers =
+                customerRepository
+                        .findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingIgnoreCaseOrCompanyContainingIgnoreCase(
+                                name.trim(),
+                                name.trim(),
+                                name.trim(),
+                                name.trim()
+                        );
         List<CustomerResponse> responseList = new ArrayList<>();
 
         for(Customer customer : customers){

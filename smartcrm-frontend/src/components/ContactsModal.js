@@ -15,16 +15,16 @@ const getInitial = (name) => name?.[0]?.toUpperCase() || "?";
 
 function ContactsModal({ customer, onClose }) {
 
-    const [contacts, setContacts] = useState([]);
-    const [loading, setLoading]   = useState(false);
+    const [contacts, setContacts]     = useState([]);
+    const [loading, setLoading]       = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [toast, setToast]       = useState({ msg: "", type: "" });
-    const [hoveredId, setHoveredId] = useState(null);
+    const [toast, setToast]           = useState({ msg: "", type: "" });
+    const [hoveredId, setHoveredId]   = useState(null);
 
-    const [name, setName]       = useState("");
-    const [email, setEmail]     = useState("");
-    const [phone, setPhone]     = useState("");
-    const [company, setCompany] = useState("");
+    // Company is intentionally removed — it is derived from the customer on the backend.
+    const [name, setName]   = useState("");
+    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
 
     // 🔐 GET ROLE FROM TOKEN
     const token = localStorage.getItem("token");
@@ -60,12 +60,12 @@ function ContactsModal({ customer, onClose }) {
     const handleAddContact = async () => {
         setSubmitting(true);
         try {
+            // company is omitted — the backend derives it from the customer automatically
             const newContact = {
                 name,
                 email,
                 phone,
-                company,
-                customerId: customer.id
+                customerId: customer.id,
             };
 
             await addContact(newContact);
@@ -73,7 +73,6 @@ function ContactsModal({ customer, onClose }) {
             setName("");
             setEmail("");
             setPhone("");
-            setCompany("");
 
             showToast("Contact added successfully.", "success");
             fetchContacts();
@@ -127,7 +126,7 @@ function ContactsModal({ customer, onClose }) {
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 }}
             >
-                {/* modal — fixed height, flex column, never grows past viewport */}
+                {/* modal */}
                 <div style={{
                     background: "#fff",
                     width: "100%", maxWidth: 480,
@@ -140,7 +139,7 @@ function ContactsModal({ customer, onClose }) {
                     overflow: "hidden",
                 }}>
 
-                    {/* ── HEADER — fixed, never scrolls ── */}
+                    {/* ── HEADER ── */}
                     <div style={{
                         padding: "18px 22px",
                         borderBottom: "1px solid #f3f4f6",
@@ -179,20 +178,18 @@ function ContactsModal({ customer, onClose }) {
                         >✕</button>
                     </div>
 
-                    {/* ── BODY — flex column, fills remaining height, clips overflow ── */}
-                    <div
-                        style={{
-                            flex: 1,
-                            minHeight: 0,           /* critical: allows flex child to shrink below content size */
-                            padding: "20px 22px 0 22px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 0,
-                            overflow: "hidden",
-                        }}
-                    >
+                    {/* ── BODY ── */}
+                    <div style={{
+                        flex: 1,
+                        minHeight: 0,
+                        padding: "20px 22px 0 22px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0,
+                        overflow: "hidden",
+                    }}>
 
-                        {/* ── ADD CONTACT FORM — fixed, never scrolls ── */}
+                        {/* ── ADD CONTACT FORM (ADMIN ONLY) ── */}
                         {role === "ADMIN" && (
                             <div style={{
                                 background: "#fafafa",
@@ -208,14 +205,37 @@ function ContactsModal({ customer, onClose }) {
                                 }}>
                                     <span style={{ fontSize: 14 }}>➕</span>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Add Contact</span>
+                                    {/* Show which company this contact will be linked to */}
+                                    {customer.company && (
+                                        <span style={{
+                                            marginLeft: "auto",
+                                            background: "#d6f5ea", color: "#1a7a4a",
+                                            padding: "2px 10px", borderRadius: 20,
+                                            fontSize: 11, fontWeight: 600,
+                                        }}>
+                                            {customer.company}
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                                    {/* 3-column grid: Name spans full width, Email + Phone side by side */}
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                                            Name
+                                        </label>
+                                        <input
+                                            className="crm-input"
+                                            type="text"
+                                            placeholder="Jane Doe"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            style={inputStyle}
+                                        />
+                                    </div>
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                         {[
-                                            { label: "Name",    value: name,    set: setName,    ph: "Jane Doe",         type: "text"  },
-                                            { label: "Email",   value: email,   set: setEmail,   ph: "jane@company.com", type: "email" },
-                                            { label: "Phone",   value: phone,   set: setPhone,   ph: "+91 98765 43210",  type: "tel"   },
-                                            { label: "Company", value: company, set: setCompany, ph: "Acme Corp",        type: "text"  },
+                                            { label: "Email", value: email, set: setEmail, ph: "jane@company.com", type: "email" },
+                                            { label: "Phone", value: phone, set: setPhone, ph: "+91 98765 43210",  type: "tel"   },
                                         ].map((f) => (
                                             <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                 <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.4px" }}>
@@ -254,14 +274,14 @@ function ContactsModal({ customer, onClose }) {
                             </div>
                         )}
 
-                        {/* ── CONTACT LIST SECTION — fills remaining space, scrolls independently ── */}
+                        {/* ── CONTACT LIST SECTION ── */}
                         <div style={{
                             flex: 1,
-                            minHeight: 0,           /* critical: allows this section to shrink and scroll */
+                            minHeight: 0,
                             display: "flex",
                             flexDirection: "column",
                         }}>
-                            {/* list header — fixed within section */}
+                            {/* list header */}
                             <div style={{
                                 display: "flex", alignItems: "center", justifyContent: "space-between",
                                 marginBottom: 12,
@@ -300,12 +320,12 @@ function ContactsModal({ customer, onClose }) {
                                 </div>
                             )}
 
-                            {/* scrollable list — ONLY this area scrolls */}
+                            {/* scrollable list */}
                             <div
                                 className="crm-contact-list"
                                 style={{
                                     flex: 1,
-                                    minHeight: 0,       /* critical: enables overflow scroll within flex */
+                                    minHeight: 0,
                                     overflowY: "auto",
                                     overflowX: "hidden",
                                     display: "flex",
@@ -365,7 +385,7 @@ function ContactsModal({ customer, onClose }) {
                                                 </div>
                                             </div>
 
-                                            {/* company badge */}
+                                            {/* company badge — kept for backward compatibility with existing contacts */}
                                             {c.company && (
                                                 <span style={{
                                                     background: "#d6f5ea", color: "#1a7a4a",
@@ -383,7 +403,7 @@ function ContactsModal({ customer, onClose }) {
                         </div>
                     </div>
 
-                    {/* ── TOAST — fixed at bottom, never scrolls ── */}
+                    {/* ── TOAST ── */}
                     {toast.msg && (
                         <div style={{
                             margin: "12px 22px 18px",

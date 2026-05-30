@@ -212,12 +212,14 @@ export default function Companies() {
                                     style={{
                                         background: "#fff",
                                         borderRadius: 14,
-                                        border: "1px solid #e5e7eb",
+                                        border: isHov ? "1px solid #c7d2fe" : "1px solid #e5e7eb",
                                         padding: "20px 22px",
                                         cursor: "pointer",
-                                        boxShadow: isHov ? "0 8px 28px rgba(0,0,0,0.10)" : "0 1px 4px rgba(0,0,0,0.05)",
-                                        transform: isHov ? "translateY(-3px)" : "none",
-                                        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+                                        boxShadow: isHov
+                                            ? "0 12px 36px rgba(79,70,229,0.13), 0 2px 8px rgba(0,0,0,0.06)"
+                                            : "0 1px 4px rgba(0,0,0,0.05)",
+                                        transform: isHov ? "translateY(-4px)" : "none",
+                                        transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
                                         animation: `fadeUp 0.35s ${i * 0.05}s ease both`,
                                         display: "flex",
                                         flexDirection: "column",
@@ -279,8 +281,18 @@ export default function Companies() {
 
                                     {/* View link */}
                                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                                        <span style={{ fontSize: 12, color: "#4f46e5", fontWeight: 600 }}>
-                                            View details →
+                                        <span style={{
+                                            fontSize: 12, color: "#4f46e5", fontWeight: 600,
+                                            display: "inline-flex", alignItems: "center", gap: 3,
+                                            transition: "gap 0.18s ease",
+                                            ...(isHov ? { gap: 6 } : {}),
+                                        }}>
+                                            View details
+                                            <span style={{
+                                                display: "inline-block",
+                                                transition: "transform 0.18s ease",
+                                                transform: isHov ? "translateX(3px)" : "translateX(0)",
+                                            }}>→</span>
                                         </span>
                                     </div>
                                 </div>

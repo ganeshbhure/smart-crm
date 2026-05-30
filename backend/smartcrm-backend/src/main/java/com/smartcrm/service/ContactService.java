@@ -22,49 +22,53 @@ public class ContactService {
         this.contactRepository = contactRepository;
     }
 
-
-    public ContactResponse createContact(ContactRequest request){
+    public ContactResponse createContact(ContactRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with the id:" + request.getCustomerId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Customer not found with the id:" + request.getCustomerId()));
 
         Contact contact = new Contact();
-
         contact.setName(request.getName());
         contact.setEmail(request.getEmail());
         contact.setPhone(request.getPhone());
-        contact.setCompany(request.getCompany());
+
+        // Automatically derive company from the associated Customer.
+        // If the Customer entity has a getCompany() method, use it; otherwise
+        // fall back to the customer's name so the badge is always populated.
+        // Adjust the getter below to match your actual Customer field name.
+        String derivedCompany = (customer.getCompany() != null && !customer.getCompany().isBlank())
+                ? customer.getCompany()
+                : customer.getName();
+        contact.setCompany(derivedCompany);
 
         contact.setCustomer(customer);
         Contact savedContact = contactRepository.save(contact);
         return convertToResponse(savedContact);
-
     }
 
-    public List<ContactResponse> getContactsByCustomer(Long customerId){
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with the id:" + customerId));
+    public List<ContactResponse> getContactsByCustomer(Long customerId) {
+        customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Customer not found with the id:" + customerId));
 
         List<ContactResponse> responseList = new ArrayList<>();
         List<Contact> contacts = contactRepository.findByCustomerId(customerId);
 
-        for(Contact contact : contacts ){
+        for (Contact contact : contacts) {
             responseList.add(convertToResponse(contact));
         }
 
         return responseList;
-
     }
 
-    private ContactResponse convertToResponse(Contact contact){
+    private ContactResponse convertToResponse(Contact contact) {
         ContactResponse response = new ContactResponse();
-
         response.setCustomerId(contact.getCustomer().getId());
         response.setId(contact.getId());
         response.setName(contact.getName());
         response.setEmail(contact.getEmail());
         response.setPhone(contact.getPhone());
         response.setCompany(contact.getCompany());
-
         return response;
     }
 }

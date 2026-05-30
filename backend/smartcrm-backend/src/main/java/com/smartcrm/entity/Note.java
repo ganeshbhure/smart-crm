@@ -1,6 +1,7 @@
 package com.smartcrm.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -60,5 +61,10 @@ public class Note {
 
     public void setCustomer(Customer customer) {
         this.customer = customer;
+    }
+
+    @JsonProperty("customerId")
+    public Long getCustomerId() {
+        return customer != null ? customer.getId() : null;
     }
 }

@@ -13,7 +13,7 @@ import Layout from "../components/Layout";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-/* ─── STAT CONFIGS (unchanged) ─────────────────────────── */
+/* ─── STAT CONFIGS ──────────────────────────────────────── */
 const STAT_CONFIGS = [
   {
     key: "totalCustomers",
@@ -47,7 +47,7 @@ const STAT_CONFIGS = [
   },
 ];
 
-/* ─── BAR COLOURS — refined palette ────────────────────── */
+/* ─── BAR COLOURS ───────────────────────────────────────── */
 const BAR_COLORS = [
   "rgba(79,  70, 229, 0.82)",
   "rgba(16, 185, 129, 0.82)",
@@ -60,49 +60,59 @@ const BAR_COLORS = [
 ];
 
 export default function Analytics() {
-  /* ── state (unchanged) ── */
+  /* ── state ── */
   const [totalCustomers, setTotalCustomers] = useState(null);
   const [openIssues,     setOpenIssues]     = useState(null);
-  const [companyData,    setCompanyData]    = useState({});
+  const [totalCompanies, setTotalCompanies] = useState(null);
+  // Chart source-of-truth: the same normalized company list the Companies page uses.
+  // Each entry is { name, customerCount } — no client-side grouping needed.
+  const [companies,      setCompanies]      = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState(null);
   const [hoveredCard,    setHoveredCard]    = useState(null);
 
-  /* ── data fetching (unchanged logic) ── */
+  /* ── data fetching ── */
   useEffect(() => {
     async function fetchAnalyticsData() {
       try {
-        const token = localStorage.getItem("token");
-        const [countRes, openRes, customersRes] = await Promise.all([
-          fetch("http://localhost:8080/api/customers/count", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("http://localhost:8080/api/notes/count/open", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("http://localhost:8080/api/customers?page=0&size=100", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+        const token   = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Three endpoints, all authoritative:
+        //  1. /api/customers/count      → total customer stat card
+        //  2. /api/notes/count/open     → open issues stat card
+        //  3. /api/companies/count      → total companies stat card
+        //  4. /api/companies            → chart labels + bar heights + footer count
+        //
+        // Previously the chart was built by fetching GET /api/customers?page=0&size=100
+        // and grouping company names client-side. That missed companies that appeared
+        // only after the first 100 customer rows, so the chart and footer showed
+        // fewer companies (28) than the stat card and Companies page (31).
+        //
+        // Now /api/companies is the single chart data source. It already contains
+        // every normalized, de-duplicated company with its customerCount, so the
+        // chart bar count, footer count, stat card, and Companies page cards are
+        // all driven by the same backend grouping logic and always match.
+        const [countRes, openRes, companyCountRes, companiesRes] = await Promise.all([
+          fetch("http://localhost:8080/api/customers/count",  { headers }),
+          fetch("http://localhost:8080/api/notes/count/open", { headers }),
+          fetch("http://localhost:8080/api/companies/count",  { headers }),
+          fetch("http://localhost:8080/api/companies",        { headers }),
         ]);
 
-        if (!countRes.ok || !openRes.ok || !customersRes.ok) {
+        if (!countRes.ok || !openRes.ok || !companyCountRes.ok || !companiesRes.ok) {
           throw new Error("Failed to fetch analytics data.");
         }
 
-        const totalCount    = await countRes.json();
-        const openCount     = await openRes.json();
-        const customersData = await customersRes.json();
-        const customers     = customersData.content || [];
-
-        const grouped = customers.reduce((acc, customer) => {
-          const company = customer.company || "Unknown";
-          acc[company] = (acc[company] || 0) + 1;
-          return acc;
-        }, {});
+        const totalCount   = await countRes.json();
+        const openCount    = await openRes.json();
+        const companyCount = await companyCountRes.json();
+        const companiesData = await companiesRes.json();   // CompanySummaryResponse[]
 
         setTotalCustomers(totalCount);
         setOpenIssues(openCount);
-        setCompanyData(grouped);
+        setTotalCompanies(companyCount);
+        setCompanies(companiesData);                       // used directly for chart
       } catch (err) {
         setError(err.message || "Something went wrong.");
       } finally {
@@ -157,15 +167,20 @@ export default function Analytics() {
     );
   }
 
-  /* ── derived values (unchanged logic) ── */
-  const totalCompanies = Object.keys(companyData).length;
-  const statValues     = { totalCustomers, openIssues, totalCompanies };
+  /* ── derived chart values ──────────────────────────────────────────────────────
+   * Built directly from the /api/companies response.
+   * company.name         → x-axis label   (already trimmed + de-duped by backend)
+   * company.customerCount → bar height     (already aggregated by backend)
+   *
+   * The backend sorts by customerCount desc then name asc, so bars are ordered
+   * largest → smallest by default — no extra sort needed here.
+   * ─────────────────────────────────────────────────────────────────────────── */
+  const chartLabels = companies.map((c) => c.name);
+  const chartCounts = companies.map((c) => c.customerCount ?? 0);
 
-  const sortedCompanies = Object.entries(companyData).sort((a, b) => b[1] - a[1]);
-  const chartLabels     = sortedCompanies.map(([company]) => company);
-  const chartCounts     = sortedCompanies.map(([, count]) => count);
+  const statValues = { totalCustomers, openIssues, totalCompanies };
 
-  /* ── chart data (unchanged logic) ── */
+  /* ── chart config ── */
   const chartData = {
     labels: chartLabels,
     datasets: [{
@@ -339,6 +354,7 @@ export default function Analytics() {
                   Distribution across all registered companies
                 </p>
               </div>
+              {/* Header badge: authoritative count from /api/companies/count */}
               <span style={{
                 fontSize: 12, fontWeight: 600,
                 background: "#eef2ff", color: "#4f46e5",
@@ -366,7 +382,8 @@ export default function Analytics() {
               )}
             </div>
 
-            {/* chart footer */}
+            {/* chart footer — chartLabels.length always equals totalCompanies because
+              both come from the same /api/companies array */}
             {chartLabels.length > 0 && (
                 <div style={{
                   padding: "12px 24px",

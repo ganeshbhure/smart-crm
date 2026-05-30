@@ -41,7 +41,7 @@ public class NoteService {
             throw new ResourceNotFoundException("Customer not found");
         }
 
-        return noteRepository.findByCustomerId(customerId);
+        return noteRepository.findByCustomer_Id(customerId);
     }
 
     // ✅ UPDATE STATUS

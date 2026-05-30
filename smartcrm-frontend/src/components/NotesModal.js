@@ -44,7 +44,6 @@ export default function NotesModal({ customer, onClose }) {
     const [status, setStatus]   = useState("OPEN");
     const [hoveredId, setHoveredId] = useState(null);
 
-    /* ── unchanged logic ── */
     const fetchNotes = async () => {
         try {
             const data = await getNotes(customer.id);
@@ -100,6 +99,7 @@ export default function NotesModal({ customer, onClose }) {
                     display: "flex", justifyContent: "center", alignItems: "center",
                     zIndex: 1000, padding: 20,
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                    overflow: "hidden",
                 }}
             >
                 {/* modal */}
@@ -108,7 +108,8 @@ export default function NotesModal({ customer, onClose }) {
                     width: "100%", maxWidth: 500,
                     borderRadius: 18,
                     boxShadow: "0 24px 64px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)",
-                    maxHeight: "88vh",
+                    maxHeight: "90vh",
+                    height: "auto",
                     display: "flex", flexDirection: "column",
                     animation: "modalIn 0.22s ease",
                     overflow: "hidden",
@@ -151,10 +152,8 @@ export default function NotesModal({ customer, onClose }) {
                         >✕</button>
                     </div>
 
-                    {/* ── SCROLLABLE BODY ── */}
-                    <div style={{ overflowY: "auto", flex: 1, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 20 }}>
-
-                        {/* ── ADD NOTE FORM ── */}
+                    {/* ── ADD NOTE FORM (fixed, never scrolls away) ── */}
+                    <div style={{ padding: "20px 22px 0", flexShrink: 0 }}>
                         <div style={{
                             background: "#fafafa",
                             border: "1px solid #e5e7eb",
@@ -234,114 +233,122 @@ export default function NotesModal({ customer, onClose }) {
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* ── NOTES LIST ── */}
-                        <div>
-                            <div style={{
-                                display: "flex", alignItems: "center", justifyContent: "space-between",
-                                marginBottom: 12,
+                    {/* ── NOTES LIST (scrolls internally) ── */}
+                    <div style={{
+                        flex: 1,
+                        minHeight: 0,
+                        overflowY: "auto",
+                        padding: "16px 22px 20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0,
+                    }}>
+                        <div style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            marginBottom: 12,
+                        }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>All Notes</span>
+                            <span style={{
+                                background: "#f3f4f6", color: "#6b7280",
+                                padding: "2px 9px", borderRadius: 20,
+                                fontSize: 11, fontWeight: 600,
                             }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>All Notes</span>
-                                <span style={{
-                                    background: "#f3f4f6", color: "#6b7280",
-                                    padding: "2px 9px", borderRadius: 20,
-                                    fontSize: 11, fontWeight: 600,
-                                }}>
-                                    {notes.length}
-                                </span>
+                                {notes.length}
+                            </span>
+                        </div>
+
+                        {notes.length === 0 && (
+                            <div style={{
+                                padding: "36px 20px", textAlign: "center",
+                                color: "#9ca3af", fontSize: 13,
+                                background: "#fafafa", borderRadius: 10,
+                                border: "1px dashed #e5e7eb",
+                            }}>
+                                <div style={{ fontSize: 26, marginBottom: 8 }}>📭</div>
+                                No notes yet. Add one above.
                             </div>
+                        )}
 
-                            {notes.length === 0 && (
-                                <div style={{
-                                    padding: "36px 20px", textAlign: "center",
-                                    color: "#9ca3af", fontSize: 13,
-                                    background: "#fafafa", borderRadius: 10,
-                                    border: "1px dashed #e5e7eb",
-                                }}>
-                                    <div style={{ fontSize: 26, marginBottom: 8 }}>📭</div>
-                                    No notes yet. Add one above.
-                                </div>
-                            )}
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                {notes.map((n, i) => (
-                                    <div
-                                        key={n.id}
-                                        className="note-card"
-                                        onMouseEnter={() => setHoveredId(n.id)}
-                                        onMouseLeave={() => setHoveredId(null)}
-                                        style={{
-                                            background: "#fff",
-                                            border: "1px solid #f3f4f6",
-                                            borderRadius: 11,
-                                            padding: "14px 16px",
-                                            display: "flex", flexDirection: "column", gap: 10,
-                                            boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                                            transition: "box-shadow 0.15s",
-                                            animation: `noteIn 0.2s ease ${i * 0.05}s both`,
-                                        }}
-                                    >
-                                        {/* top row: badge + delete */}
-                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                                            <StatusBadge status={n.status} />
-                                            <button
-                                                className="del-btn"
-                                                onClick={() => handleDelete(n.id)}
-                                                style={{
-                                                    padding: "4px 12px",
-                                                    borderRadius: 7,
-                                                    background: "#fff",
-                                                    color: "#9ca3af",
-                                                    border: "1px solid #e5e7eb",
-                                                    fontSize: 11,
-                                                    fontWeight: 600,
-                                                    cursor: "pointer",
-                                                    fontFamily: "inherit",
-                                                    transition: "all 0.15s",
-                                                    whiteSpace: "nowrap",
-                                                }}
-                                            >
-                                                🗑 Delete
-                                            </button>
-                                        </div>
-
-                                        {/* note content */}
-                                        <p style={{
-                                            fontSize: 13.5,
-                                            color: "#374151",
-                                            lineHeight: 1.65,
-                                            margin: 0,
-                                        }}>
-                                            {n.content}
-                                        </p>
-
-                                        {/* status changer */}
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                            <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>Change status:</span>
-                                            <select
-                                                className="notes-select"
-                                                value={n.status}
-                                                onChange={(e) => handleStatusChange(n.id, e.target.value)}
-                                                style={{
-                                                    padding: "5px 28px 5px 10px",
-                                                    borderRadius: 7,
-                                                    border: "1px solid #e5e7eb",
-                                                    fontSize: 12,
-                                                    color: "#374151",
-                                                    background: "#f9fafb",
-                                                    fontFamily: "inherit",
-                                                    cursor: "pointer",
-                                                    transition: "border-color 0.15s",
-                                                }}
-                                            >
-                                                <option value="OPEN">Open</option>
-                                                <option value="IN_PROGRESS">In Progress</option>
-                                                <option value="RESOLVED">Resolved</option>
-                                            </select>
-                                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {notes.map((n, i) => (
+                                <div
+                                    key={n.id}
+                                    className="note-card"
+                                    onMouseEnter={() => setHoveredId(n.id)}
+                                    onMouseLeave={() => setHoveredId(null)}
+                                    style={{
+                                        background: "#fff",
+                                        border: "1px solid #f3f4f6",
+                                        borderRadius: 11,
+                                        padding: "14px 16px",
+                                        display: "flex", flexDirection: "column", gap: 10,
+                                        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                                        transition: "box-shadow 0.15s",
+                                        animation: `noteIn 0.2s ease ${i * 0.05}s both`,
+                                    }}
+                                >
+                                    {/* top row: badge + delete */}
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                                        <StatusBadge status={n.status} />
+                                        <button
+                                            className="del-btn"
+                                            onClick={() => handleDelete(n.id)}
+                                            style={{
+                                                padding: "4px 12px",
+                                                borderRadius: 7,
+                                                background: "#fff",
+                                                color: "#9ca3af",
+                                                border: "1px solid #e5e7eb",
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                cursor: "pointer",
+                                                fontFamily: "inherit",
+                                                transition: "all 0.15s",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            🗑 Delete
+                                        </button>
                                     </div>
-                                ))}
-                            </div>
+
+                                    {/* note content */}
+                                    <p style={{
+                                        fontSize: 13.5,
+                                        color: "#374151",
+                                        lineHeight: 1.65,
+                                        margin: 0,
+                                    }}>
+                                        {n.content}
+                                    </p>
+
+                                    {/* status changer */}
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>Change status:</span>
+                                        <select
+                                            className="notes-select"
+                                            value={n.status}
+                                            onChange={(e) => handleStatusChange(n.id, e.target.value)}
+                                            style={{
+                                                padding: "5px 28px 5px 10px",
+                                                borderRadius: 7,
+                                                border: "1px solid #e5e7eb",
+                                                fontSize: 12,
+                                                color: "#374151",
+                                                background: "#f9fafb",
+                                                fontFamily: "inherit",
+                                                cursor: "pointer",
+                                                transition: "border-color 0.15s",
+                                            }}
+                                        >
+                                            <option value="OPEN">Open</option>
+                                            <option value="IN_PROGRESS">In Progress</option>
+                                            <option value="RESOLVED">Resolved</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 
 /* ─── Nav items ─────────────────────────────────────────── */
 const NAV_ITEMS = [
-    { path: "/dashboard", icon: "👥", label: "Customers" },
-    { path: "/analytics", icon: "📊", label: "Analytics" },
-    { path: "/settings",  icon: "⚙️", label: "Settings"  },
+    { path: "/dashboard",  icon: "👥", label: "Customers"  },
+    { path: "/companies",  icon: "🏢", label: "Companies"  },
+    { path: "/analytics",  icon: "📊", label: "Analytics"  },
+    { path: "/settings",   icon: "⚙️", label: "Settings"   },
 ];
 
 export default function Sidebar() {

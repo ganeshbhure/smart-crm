@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import ReactDOM from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
+import ContactsModal from "../components/ContactsModal";
+import NotesModal from "../components/NotesModal";
+import { updateCustomer, deleteCustomer, updateNoteStatus } from "../services/api";
 
 /* ─── helpers ────────────────────────────────────────────── */
 const AVATAR_COLORS = [
@@ -75,22 +79,354 @@ function StatCard({ icon, label, value, iconBg, valueColor, borderColor }) {
 }
 
 /* ─── Note Status Badge ─────────────────────────────────── */
+const STATUS_MAP = {
+    RESOLVED:    { bg: "#d6f5ea", color: "#1a7a4a", border: "#a7f3d0", label: "Resolved" },
+    IN_PROGRESS: { bg: "#fffbeb", color: "#92400e", border: "#fde68a", label: "In Progress" },
+    OPEN:        { bg: "#fff0f3", color: "#c0395d", border: "#f9c0ce", label: "Open" },
+};
+
 function NoteStatusBadge({ status }) {
-    const map = {
-        RESOLVED:    { bg: "#d6f5ea", color: "#1a7a4a", border: "#a7f3d0", label: "Resolved" },
-        IN_PROGRESS: { bg: "#fffbeb", color: "#92400e", border: "#fde68a", label: "In Progress" },
-        OPEN:        { bg: "#fff0f3", color: "#c0395d", border: "#f9c0ce", label: "Open" },
-    };
-    const s = map[status?.toUpperCase()] || map.OPEN;
+    const s = STATUS_MAP[status?.toUpperCase()] || STATUS_MAP.OPEN;
     return (
         <span style={{
-            fontSize: 11, fontWeight: 600,
+            fontSize: 11, fontWeight: 700,
             background: s.bg, color: s.color,
-            padding: "2px 10px", borderRadius: 20,
+            padding: "3px 10px", borderRadius: 20,
             border: `1px solid ${s.border}`,
+            letterSpacing: "0.3px",
+            textTransform: "uppercase",
         }}>
             {s.label}
         </span>
+    );
+}
+
+/* ─── Edit Customer Modal ────────────────────────────────── */
+function EditCustomerModal({ customer, onClose, onSaved }) {
+    const [name, setName]     = useState(customer.name || "");
+    const [email, setEmail]   = useState(customer.email || "");
+    const [phone, setPhone]   = useState(customer.phone || "");
+    const [company, setCompany] = useState(customer.company || "");
+    const [saving, setSaving] = useState(false);
+    const [error, setError]   = useState("");
+
+    const handleSave = async () => {
+        if (!name.trim() || !email.trim()) { setError("Name and email are required."); return; }
+        setSaving(true);
+        try {
+            await updateCustomer(customer.id, { name, email, phone, company });
+            onSaved();
+            onClose();
+        } catch (e) {
+            setError("Failed to save changes.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const inputStyle = {
+        width: "100%", padding: "9px 13px", borderRadius: 8,
+        border: "1px solid #d1d5db", fontSize: 13.5,
+        color: "#111827", background: "#fff", fontFamily: "inherit",
+        outline: "none", boxSizing: "border-box",
+        transition: "border-color 0.15s, box-shadow 0.15s",
+    };
+
+    return (
+        <>
+            <style>{`
+                .edit-input:focus { border-color: #4f46e5 !important; box-shadow: 0 0 0 3px rgba(79,70,229,0.12) !important; }
+                @keyframes editModalIn { from { opacity:0; transform:translateY(-10px) scale(0.98); } to { opacity:1; transform:none; } }
+            `}</style>
+            <div
+                onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+                style={{
+                    position: "fixed", inset: 0,
+                    background: "rgba(15,15,20,0.45)", backdropFilter: "blur(4px)",
+                    display: "flex", justifyContent: "center", alignItems: "center",
+                    zIndex: 1100, padding: 20,
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                }}
+            >
+                <div style={{
+                    background: "#fff", width: "100%", maxWidth: 440,
+                    borderRadius: 18,
+                    boxShadow: "0 24px 64px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)",
+                    animation: "editModalIn 0.22s ease",
+                    overflow: "hidden",
+                }}>
+                    {/* Header */}
+                    <div style={{
+                        padding: "18px 22px", borderBottom: "1px solid #f3f4f6",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        background: "#fafafa",
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <Avatar name={customer.name} size={36} />
+                            <div>
+                                <p style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>Edit Customer</p>
+                                <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.3px", margin: 0 }}>{customer.name}</h2>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb",
+                                background: "#fff", cursor: "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: 16, color: "#6b7280",
+                            }}
+                        >✕</button>
+                    </div>
+
+                    {/* Form */}
+                    <div style={{ padding: "22px", display: "flex", flexDirection: "column", gap: 14 }}>
+                        {[
+                            { label: "Name *", value: name, setter: setName, placeholder: "Full name" },
+                            { label: "Email *", value: email, setter: setEmail, placeholder: "email@example.com" },
+                            { label: "Phone", value: phone, setter: setPhone, placeholder: "+91 XXXXX XXXXX" },
+                            { label: "Company", value: company, setter: setCompany, placeholder: "Company name" },
+                        ].map(({ label, value, setter, placeholder }) => (
+                            <div key={label}>
+                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>{label}</label>
+                                <input
+                                    className="edit-input"
+                                    value={value}
+                                    onChange={(e) => setter(e.target.value)}
+                                    placeholder={placeholder}
+                                    style={inputStyle}
+                                />
+                            </div>
+                        ))}
+
+                        {error && (
+                            <div style={{ background: "#fff0f3", color: "#c0395d", borderLeft: "4px solid #c0395d", padding: "10px 14px", borderRadius: 8, fontSize: 13 }}>
+                                ⚠️ {error}
+                            </div>
+                        )}
+
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                            <button
+                                onClick={onClose}
+                                style={{
+                                    padding: "9px 20px", borderRadius: 9, border: "1px solid #e5e7eb",
+                                    background: "#fff", fontSize: 13, fontWeight: 600, color: "#374151", cursor: "pointer",
+                                }}
+                            >Cancel</button>
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                style={{
+                                    padding: "9px 22px", borderRadius: 9, border: "none",
+                                    background: saving ? "#a5b4fc" : "#4f46e5",
+                                    color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer",
+                                }}
+                            >{saving ? "Saving…" : "Save Changes"}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
+/* ─── Actions Dropdown (portal-based, escapes overflow:hidden) ── */
+function ActionsDropdown({ customer, onViewContacts, onViewNotes, onEdit, onDelete }) {
+    const [open, setOpen]     = useState(false);
+    const [coords, setCoords] = useState({});
+    const btnRef  = useRef(null);
+    const menuRef = useRef(null);
+
+    const MENU_WIDTH  = 188;
+    const MENU_HEIGHT = 176; // 4 items × ~44px
+
+    const handleOpen = (e) => {
+        e.stopPropagation();
+        if (open) { setOpen(false); return; }
+
+        const rect = btnRef.current.getBoundingClientRect();
+
+        // align right edge of menu with right edge of button
+        const left = Math.max(8, rect.right - MENU_WIDTH);
+
+        // open below if room, otherwise above
+        const spaceBelow = window.innerHeight - rect.bottom - 8;
+        const top = spaceBelow >= MENU_HEIGHT
+            ? rect.bottom + 6
+            : rect.top - MENU_HEIGHT - 6;
+
+        setCoords({ top: Math.max(8, top), left });
+        setOpen(true);
+    };
+
+    // close on outside click
+    useEffect(() => {
+        if (!open) return;
+        const down = (e) => {
+            if (
+                !btnRef.current?.contains(e.target) &&
+                !menuRef.current?.contains(e.target)
+            ) setOpen(false);
+        };
+        document.addEventListener("mousedown", down);
+        return () => document.removeEventListener("mousedown", down);
+    }, [open]);
+
+    // close on any scroll (same as Dashboard)
+    useEffect(() => {
+        if (!open) return;
+        const close = () => setOpen(false);
+        window.addEventListener("scroll", close, true);
+        return () => window.removeEventListener("scroll", close, true);
+    }, [open]);
+
+    const actions = [
+        { icon: "📋", label: "View Contacts",  handler: onViewContacts },
+        { icon: "📝", label: "View Notes",      handler: onViewNotes },
+        { icon: "✏️", label: "Edit Customer",  handler: onEdit },
+        { icon: "🗑",  label: "Delete Customer", handler: onDelete, danger: true },
+    ];
+
+    const menu = open ? (
+        <div
+            ref={menuRef}
+            style={{
+                position:  "fixed",          // fixed to viewport — immune to any ancestor overflow/clip
+                top:       coords.top,
+                left:      coords.left,
+                width:     MENU_WIDTH,
+                background: "#fff",
+                border:    "1px solid #e5e7eb",
+                borderRadius: 11,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+                zIndex:    99999,            // above everything
+                padding:   "5px",
+                animation: "dropIn 0.15s ease",
+            }}
+        >
+            {actions.map(({ icon, label, handler, danger }) => (
+                <button
+                    key={label}
+                    onClick={(e) => { e.stopPropagation(); setOpen(false); handler(); }}
+                    style={{
+                        display: "flex", alignItems: "center", gap: 9,
+                        width: "100%", padding: "9px 12px",
+                        background: "none", border: "none",
+                        fontSize: 13, fontWeight: 500,
+                        color: danger ? "#c0395d" : "#374151",
+                        cursor: "pointer", borderRadius: 7,
+                        textAlign: "left", fontFamily: "inherit",
+                        transition: "background 0.1s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = danger ? "#fff0f3" : "#f3f4f6"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                >
+                    <span style={{ fontSize: 14 }}>{icon}</span>
+                    {label}
+                </button>
+            ))}
+        </div>
+    ) : null;
+
+    return (
+        <>
+            <button
+                ref={btnRef}
+                onClick={handleOpen}
+                style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "6px 12px", borderRadius: 8,
+                    border: "1px solid #e5e7eb", background: open ? "#f3f4f6" : "#fff",
+                    fontSize: 12.5, fontWeight: 600, color: "#374151",
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: "background 0.12s, border-color 0.12s",
+                    whiteSpace: "nowrap",
+                }}
+            >
+                Actions
+                <span style={{
+                    display: "inline-block",
+                    transform: open ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.15s",
+                    fontSize: 10, lineHeight: 1, color: "#9ca3af",
+                }}>▼</span>
+            </button>
+
+            {ReactDOM.createPortal(menu, document.body)}
+        </>
+    );
+}
+
+/* ─── Note Status Selector ───────────────────────────────── */
+/* Replaces the plain <select> with CRM-themed segmented pill buttons.
+   Each option uses the same STATUS_MAP colours as NoteStatusBadge so the
+   control is visually consistent with the rest of the page.
+   The onChange API is identical — no logic changes in the parent. */
+function NoteStatusSelector({ note, onChange }) {
+    const [updating, setUpdating] = useState(false);
+
+    const handleChange = async (newStatus) => {
+        if (newStatus === note.status || updating) return;
+        setUpdating(true);
+        try {
+            await onChange(note.id, newStatus);
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const OPTIONS = [
+        { value: "OPEN",        label: "Open" },
+        { value: "IN_PROGRESS", label: "In Progress" },
+        { value: "RESOLVED",    label: "Resolved" },
+    ];
+
+    return (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, flexShrink: 0 }}>
+                Set status:
+            </span>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {OPTIONS.map(({ value, label }) => {
+                    const active = note.status === value;
+                    const s      = STATUS_MAP[value];
+                    return (
+                        <button
+                            key={value}
+                            onClick={() => handleChange(value)}
+                            disabled={updating}
+                            style={{
+                                padding: "3px 11px",
+                                borderRadius: 20,
+                                border: active ? `1.5px solid ${s.border}` : "1.5px solid #e5e7eb",
+                                background: active ? s.bg : "#fff",
+                                color:      active ? s.color : "#9ca3af",
+                                fontSize: 11.5, fontWeight: active ? 700 : 500,
+                                cursor: updating ? "wait" : "pointer",
+                                fontFamily: "inherit",
+                                transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                                opacity: updating ? 0.6 : 1,
+                            }}
+                        >
+                            {active && (
+                                <span style={{
+                                    display: "inline-block",
+                                    width: 6, height: 6,
+                                    borderRadius: "50%",
+                                    background: s.color,
+                                    marginRight: 5,
+                                    verticalAlign: "middle",
+                                }} />
+                            )}
+                            {label}
+                        </button>
+                    );
+                })}
+            </div>
+            {updating && (
+                <span style={{ fontSize: 11, color: "#9ca3af", fontStyle: "italic" }}>Saving…</span>
+            )}
+        </div>
     );
 }
 
@@ -100,50 +436,88 @@ export default function CompanyDetail() {
     const navigate = useNavigate();
     const companyName = decodeURIComponent(name);
 
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [notesFilter, setNotesFilter] = useState("all"); // all | open | in_progress | resolved
-    const [activeTab, setActiveTab] = useState("customers");
+    const [data, setData]             = useState(null);
+    const [loading, setLoading]       = useState(true);
+    const [error, setError]           = useState(null);
+    const [notesFilter, setNotesFilter] = useState("all");
+    const [activeTab, setActiveTab]   = useState("customers");
     const [hoveredRow, setHoveredRow] = useState(null);
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const token = localStorage.getItem("token");
-                const headers = { Authorization: `Bearer ${token}` };
+    /* modal state */
+    const [contactsCustomer, setContactsCustomer] = useState(null);
+    const [notesCustomer, setNotesCustomer]       = useState(null);
+    const [editCustomer, setEditCustomer]         = useState(null);
+    const [deleteConfirm, setDeleteConfirm]       = useState(null);
+    const [deleting, setDeleting]                 = useState(false);
 
-                const res = await fetch(
-                    `http://localhost:8080/api/companies/${encodeURIComponent(companyName)}`,
-                    { headers }
-                );
+    /* ── fetch company data ── */
+    const fetchData = useCallback(async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const headers = { Authorization: `Bearer ${token}` };
 
-                if (!res.ok) {
-                    const msg = res.status === 404
-                        ? `Company "${companyName}" not found.`
-                        : "Failed to load company data.";
-                    throw new Error(msg);
-                }
+            const res = await fetch(
+                `http://localhost:8080/api/companies/${encodeURIComponent(companyName)}`,
+                { headers }
+            );
 
-                const json = await res.json();
-
-                // Enrich notes with customerName for display
-                const customerMap = {};
-                (json.customers || []).forEach((c) => { customerMap[c.id] = c.name; });
-                const enrichedNotes = (json.notes || []).map((n) => ({
-                    ...n,
-                    customerName: customerMap[n.customerId] || "Unknown",
-                }));
-
-                setData({ ...json, notes: enrichedNotes });
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+            if (!res.ok) {
+                const msg = res.status === 404
+                    ? `Company "${companyName}" not found.`
+                    : "Failed to load company data.";
+                throw new Error(msg);
             }
+
+            const json = await res.json();
+            const customerMap = {};
+            (json.customers || []).forEach((c) => { customerMap[c.id] = c.name; });
+            const enrichedNotes = (json.notes || []).map((n) => ({
+                ...n,
+                customerName: customerMap[n.customerId] || "Unknown",
+            }));
+
+            setData({ ...json, notes: enrichedNotes });
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
-        fetchData();
     }, [companyName]);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
+
+    /* ── note status change handler ── */
+    const handleNoteStatusChange = async (noteId, newStatus) => {
+        await updateNoteStatus(noteId, newStatus);
+        // optimistic local update + refresh stats from server
+        setData((prev) => {
+            if (!prev) return prev;
+            const updatedNotes = prev.notes.map((n) =>
+                n.id === noteId ? { ...n, status: newStatus } : n
+            );
+            // recount
+            const openCount      = updatedNotes.filter((n) => n.status === "OPEN").length;
+            const inProgressCount = updatedNotes.filter((n) => n.status === "IN_PROGRESS").length;
+            const resolvedCount  = updatedNotes.filter((n) => n.status === "RESOLVED").length;
+            return { ...prev, notes: updatedNotes, openCount, inProgressCount, resolvedCount };
+        });
+        // also do a background full refresh to keep counts accurate
+        fetchData();
+    };
+
+    /* ── delete handler ── */
+    const handleDelete = async (customer) => {
+        setDeleting(true);
+        try {
+            await deleteCustomer(customer.id);
+            setDeleteConfirm(null);
+            fetchData();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     /* ── Loading ── */
     if (loading) {
@@ -177,13 +551,13 @@ export default function CompanyDetail() {
         );
     }
 
-    const customers    = data?.customers || [];
-    const notes        = data?.notes || [];
-    const openCount    = data?.openCount ?? 0;
-    const inProgCount  = data?.inProgressCount ?? 0;
+    const customers     = data?.customers || [];
+    const notes         = data?.notes || [];
+    const openCount     = data?.openCount ?? 0;
+    const inProgCount   = data?.inProgressCount ?? 0;
     const resolvedCount = data?.resolvedCount ?? 0;
-    const totalNotes   = data?.totalNotes ?? notes.length;
-    const priority     = data?.priority || "LOW";
+    const totalNotes    = data?.totalNotes ?? notes.length;
+    const priority      = data?.priority || "LOW";
 
     const filteredNotes = notes.filter((n) => {
         if (notesFilter === "open")        return n.status === "OPEN";
@@ -219,7 +593,77 @@ export default function CompanyDetail() {
                 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes spin   { to { transform: rotate(360deg); } }
+                @keyframes dropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes confirmIn { from { opacity: 0; transform: translateY(-8px) scale(0.97); } to { opacity: 1; transform: none; } }
             `}</style>
+
+            {/* ── Modals ── */}
+            {contactsCustomer && (
+                <ContactsModal
+                    customer={contactsCustomer}
+                    onClose={() => setContactsCustomer(null)}
+                />
+            )}
+            {notesCustomer && (
+                <NotesModal
+                    customer={notesCustomer}
+                    onClose={() => setNotesCustomer(null)}
+                />
+            )}
+            {editCustomer && (
+                <EditCustomerModal
+                    customer={editCustomer}
+                    onClose={() => setEditCustomer(null)}
+                    onSaved={fetchData}
+                />
+            )}
+
+            {/* ── Delete Confirmation ── */}
+            {deleteConfirm && (
+                <div
+                    onClick={(e) => { if (e.target === e.currentTarget) setDeleteConfirm(null); }}
+                    style={{
+                        position: "fixed", inset: 0,
+                        background: "rgba(15,15,20,0.45)", backdropFilter: "blur(4px)",
+                        display: "flex", justifyContent: "center", alignItems: "center",
+                        zIndex: 1100, padding: 20,
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                    }}
+                >
+                    <div style={{
+                        background: "#fff", borderRadius: 16, padding: "28px 32px",
+                        maxWidth: 380, width: "100%", textAlign: "center",
+                        boxShadow: "0 24px 64px rgba(0,0,0,0.16)",
+                        animation: "confirmIn 0.2s ease",
+                    }}>
+                        <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 8 }}>
+                            Delete Customer?
+                        </h3>
+                        <p style={{ fontSize: 13.5, color: "#6b7280", marginBottom: 22, lineHeight: 1.6 }}>
+                            Are you sure you want to delete <strong>{deleteConfirm.name}</strong>? This action cannot be undone.
+                        </p>
+                        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                            <button
+                                onClick={() => setDeleteConfirm(null)}
+                                style={{
+                                    padding: "9px 22px", borderRadius: 9, border: "1px solid #e5e7eb",
+                                    background: "#fff", fontSize: 13, fontWeight: 600, color: "#374151", cursor: "pointer",
+                                }}
+                            >Cancel</button>
+                            <button
+                                onClick={() => handleDelete(deleteConfirm)}
+                                disabled={deleting}
+                                style={{
+                                    padding: "9px 22px", borderRadius: 9, border: "none",
+                                    background: deleting ? "#fca5a5" : "#ef4444",
+                                    color: "#fff", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer",
+                                }}
+                            >{deleting ? "Deleting…" : "Yes, Delete"}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
 
@@ -260,11 +704,11 @@ export default function CompanyDetail() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
                     gap: 14,
                 }}>
-                    <StatCard icon="👥" label="Customers"    value={customers.length} iconBg="#eef2ff"  valueColor="#4f46e5" borderColor="#4f46e5" />
-                    <StatCard icon="📝" label="Total Notes"  value={totalNotes}        iconBg="#f3f4f6"  valueColor="#374151" borderColor="#9ca3af" />
-                    <StatCard icon="🔔" label="Open Issues"  value={openCount}          iconBg="#fff0f3"  valueColor="#c0395d" borderColor="#f9c0ce" />
-                    <StatCard icon="🔄" label="In Progress"  value={inProgCount}        iconBg="#fffbeb"  valueColor="#92400e" borderColor="#f59e0b" />
-                    <StatCard icon="✅" label="Resolved"     value={resolvedCount}      iconBg="#d6f5ea"  valueColor="#1a7a4a" borderColor="#10b981" />
+                    <StatCard icon="👥" label="Customers"    value={customers.length}  iconBg="#eef2ff"  valueColor="#4f46e5" borderColor="#4f46e5" />
+                    <StatCard icon="📝" label="Total Notes"  value={totalNotes}         iconBg="#f3f4f6"  valueColor="#374151" borderColor="#9ca3af" />
+                    <StatCard icon="🔔" label="Open Issues"  value={openCount}           iconBg="#fff0f3"  valueColor="#c0395d" borderColor="#f9c0ce" />
+                    <StatCard icon="🔄" label="In Progress"  value={inProgCount}         iconBg="#fffbeb"  valueColor="#92400e" borderColor="#f59e0b" />
+                    <StatCard icon="✅" label="Resolved"     value={resolvedCount}       iconBg="#d6f5ea"  valueColor="#1a7a4a" borderColor="#10b981" />
                 </div>
 
                 {/* ── Tabs ── */}
@@ -279,7 +723,7 @@ export default function CompanyDetail() {
                     <div style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         borderBottom: "1px solid #f3f4f6", background: "#fafafa",
-                        padding: "0 20px",
+                        padding: "0 20px", flexWrap: "wrap", gap: 8,
                     }}>
                         <div style={{ display: "flex", gap: 0 }}>
                             {[
@@ -308,28 +752,32 @@ export default function CompanyDetail() {
 
                         {/* Notes filter */}
                         {activeTab === "notes" && (
-                            <div style={{ display: "flex", gap: 6 }}>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", padding: "8px 0" }}>
                                 {[
-                                    { key: "all",         label: "All" },
-                                    { key: "open",        label: "Open" },
-                                    { key: "in_progress", label: "In Progress" },
-                                    { key: "resolved",    label: "Resolved" },
-                                ].map((f) => (
-                                    <button
-                                        key={f.key}
-                                        onClick={() => setNotesFilter(f.key)}
-                                        style={{
-                                            padding: "5px 12px", borderRadius: 20,
-                                            border: notesFilter === f.key ? "1px solid #4f46e5" : "1px solid #e5e7eb",
-                                            background: notesFilter === f.key ? "#eef2ff" : "#fff",
-                                            color: notesFilter === f.key ? "#4f46e5" : "#6b7280",
-                                            fontSize: 12, fontWeight: 600,
-                                            cursor: "pointer", fontFamily: "inherit",
-                                        }}
-                                    >
-                                        {f.label}
-                                    </button>
-                                ))}
+                                    { key: "all",         label: "All",         activeBg: "#eef2ff", activeColor: "#4f46e5", activeBorder: "#c7d2fe" },
+                                    { key: "open",        label: "Open",        activeBg: "#fff0f3", activeColor: "#c0395d", activeBorder: "#f9c0ce" },
+                                    { key: "in_progress", label: "In Progress", activeBg: "#fffbeb", activeColor: "#92400e", activeBorder: "#fde68a" },
+                                    { key: "resolved",    label: "Resolved",    activeBg: "#d6f5ea", activeColor: "#1a7a4a", activeBorder: "#a7f3d0" },
+                                ].map((f) => {
+                                    const active = notesFilter === f.key;
+                                    return (
+                                        <button
+                                            key={f.key}
+                                            onClick={() => setNotesFilter(f.key)}
+                                            style={{
+                                                padding: "5px 13px", borderRadius: 20,
+                                                border: active ? `1.5px solid ${f.activeBorder}` : "1px solid #e5e7eb",
+                                                background: active ? f.activeBg : "#fff",
+                                                color: active ? f.activeColor : "#6b7280",
+                                                fontSize: 12, fontWeight: active ? 700 : 500,
+                                                cursor: "pointer", fontFamily: "inherit",
+                                                transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                                            }}
+                                        >
+                                            {f.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -344,18 +792,22 @@ export default function CompanyDetail() {
                                 </div>
                             ) : (
                                 <>
+                                    {/* Table header */}
                                     <div style={{
                                         display: "grid",
-                                        gridTemplateColumns: "minmax(150px,2fr) minmax(180px,2fr) minmax(120px,1.2fr)",
+                                        gridTemplateColumns: "minmax(150px,2fr) minmax(180px,2fr) minmax(120px,1.2fr) auto",
                                         padding: "10px 22px",
                                         background: "#f9fafb", borderBottom: "1px solid #f3f4f6",
                                         fontSize: 11, fontWeight: 700, color: "#6b7280",
                                         textTransform: "uppercase", letterSpacing: "0.6px",
+                                        alignItems: "center",
                                     }}>
                                         <span>Customer</span>
                                         <span>Email</span>
                                         <span>Phone</span>
+                                        <span style={{ textAlign: "right" }}>Actions</span>
                                     </div>
+
                                     {customers.map((c, i) => {
                                         const isHov = hoveredRow === c.id;
                                         return (
@@ -365,10 +817,10 @@ export default function CompanyDetail() {
                                                 onMouseLeave={() => setHoveredRow(null)}
                                                 style={{
                                                     display: "grid",
-                                                    gridTemplateColumns: "minmax(150px,2fr) minmax(180px,2fr) minmax(120px,1.2fr)",
+                                                    gridTemplateColumns: "minmax(150px,2fr) minmax(180px,2fr) minmax(120px,1.2fr) auto",
                                                     padding: "13px 22px",
                                                     borderBottom: i < customers.length - 1 ? "1px solid #f3f4f6" : "none",
-                                                    alignItems: "center",
+                                                    alignItems: "center", gap: 12,
                                                     background: isHov ? "#fafafa" : "#fff",
                                                     transition: "background 0.12s",
                                                     animation: `fadeIn 0.25s ${i * 0.04}s ease both`,
@@ -378,10 +830,19 @@ export default function CompanyDetail() {
                                                     <Avatar name={c.name} size={34} />
                                                     <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{c.name}</span>
                                                 </div>
-                                                <span style={{ fontSize: 13, color: "#4b5563" }}>{c.email}</span>
+                                                <span style={{ fontSize: 13, color: "#4b5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.email}</span>
                                                 <span style={{ fontSize: 13, color: "#6b7280" }}>
                                                     {c.phone || <em style={{ opacity: 0.4, fontStyle: "normal" }}>—</em>}
                                                 </span>
+                                                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                                    <ActionsDropdown
+                                                        customer={c}
+                                                        onViewContacts={() => setContactsCustomer(c)}
+                                                        onViewNotes={() => setNotesCustomer(c)}
+                                                        onEdit={() => setEditCustomer(c)}
+                                                        onDelete={() => setDeleteConfirm(c)}
+                                                    />
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -402,35 +863,53 @@ export default function CompanyDetail() {
                                 </div>
                             ) : (
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                    {filteredNotes.map((note, i) => (
-                                        <div
-                                            key={note.id}
-                                            style={{
-                                                padding: "16px 22px",
-                                                borderBottom: i < filteredNotes.length - 1 ? "1px solid #f3f4f6" : "none",
-                                                animation: `fadeIn 0.25s ${i * 0.04}s ease both`,
-                                                display: "flex", alignItems: "flex-start", gap: 14,
-                                            }}
-                                        >
-                                            <Avatar name={note.customerName} size={32} />
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
-                                                    <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{note.customerName}</span>
-                                                    <NoteStatusBadge status={note.status} />
-                                                    {note.createdAt && (
-                                                        <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                                    {filteredNotes.map((note, i) => {
+                                        const sm = STATUS_MAP[note.status?.toUpperCase()] || STATUS_MAP.OPEN;
+                                        return (
+                                            <div
+                                                key={note.id}
+                                                style={{
+                                                    padding: "18px 22px",
+                                                    borderBottom: i < filteredNotes.length - 1 ? "1px solid #f3f4f6" : "none",
+                                                    animation: `fadeIn 0.25s ${i * 0.04}s ease both`,
+                                                    display: "flex", alignItems: "flex-start", gap: 14,
+                                                    // Status-coloured left accent strip — instant visual hierarchy
+                                                    borderLeft: `3px solid ${sm.border}`,
+                                                    background: i % 2 === 0 ? "#fff" : "#fafafa",
+                                                }}
+                                            >
+                                                <Avatar name={note.customerName} size={34} />
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    {/* top row — name · badge · date */}
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, flexWrap: "wrap" }}>
+                                                        <span style={{ fontSize: 13.5, fontWeight: 700, color: "#111827" }}>{note.customerName}</span>
+                                                        <NoteStatusBadge status={note.status} />
+                                                        {note.createdAt && (
+                                                            <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: "auto" }}>
                                                             {new Date(note.createdAt).toLocaleDateString("en-IN", {
                                                                 day: "numeric", month: "short", year: "numeric",
                                                             })}
                                                         </span>
-                                                    )}
+                                                        )}
+                                                    </div>
+                                                    {/* note content — stronger contrast, tighter line height */}
+                                                    <p style={{
+                                                        fontSize: 13, color: "#374151",
+                                                        margin: "0 0 12px", lineHeight: 1.65,
+                                                        fontStyle: note.content ? "normal" : "italic",
+                                                        opacity: note.content ? 1 : 0.5,
+                                                    }}>
+                                                        {note.content || "No content"}
+                                                    </p>
+                                                    {/* status selector */}
+                                                    <NoteStatusSelector
+                                                        note={note}
+                                                        onChange={handleNoteStatusChange}
+                                                    />
                                                 </div>
-                                                <p style={{ fontSize: 13, color: "#4b5563", margin: 0, lineHeight: 1.6 }}>
-                                                    {note.content || <em style={{ opacity: 0.5 }}>No content</em>}
-                                                </p>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

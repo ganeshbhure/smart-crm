@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -8,7 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar } from "react-chartjs-2";
+import { Bar, getElementAtEvent } from "react-chartjs-2";
 import Layout from "../components/Layout";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -61,6 +62,9 @@ const BAR_COLORS = [
 
 export default function Analytics() {
   /* ── state ── */
+  const navigate   = useNavigate();
+  const chartRef   = useRef(null);
+
   const [totalCustomers, setTotalCustomers] = useState(null);
   const [openIssues,     setOpenIssues]     = useState(null);
   const [totalCompanies, setTotalCompanies] = useState(null);
@@ -178,6 +182,20 @@ export default function Analytics() {
   const chartLabels = companies.map((c) => c.name);
   const chartCounts = companies.map((c) => c.customerCount ?? 0);
 
+  /* ── bar click handler ──────────────────────────────────────────────────────
+   * getElementAtEvent resolves which bar index the user clicked, then uses
+   * the matching company name to navigate to /companies/:name — matching the
+   * route pattern CompanyDetail reads with useParams({ name }).
+   * ─────────────────────────────────────────────────────────────────────────── */
+  const handleBarClick = (event) => {
+    if (!chartRef.current) return;
+    const elements = getElementAtEvent(chartRef.current, event);
+    if (elements.length === 0) return;               // clicked empty canvas area
+    const { index } = elements[0];
+    const companyName = chartLabels[index];
+    navigate(`/companies/${encodeURIComponent(companyName)}`);
+  };
+
   const statValues = { totalCustomers, openIssues, totalCompanies };
 
   /* ── chart config ── */
@@ -197,20 +215,26 @@ export default function Analytics() {
     responsive: true,
     maintainAspectRatio: true,
     aspectRatio: 3.2,
+    onHover: (event, elements) => {
+      event.native.target.style.cursor = elements.length > 0 ? "pointer" : "default";
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: "#111827",
-        titleColor: "#f9fafb",
-        bodyColor: "#9ca3af",
-        padding: 12,
+        // Richer tooltip: deeper indigo background, coloured title, larger body text
+        backgroundColor: "#1e1b4b",
+        titleColor: "#e0e7ff",
+        bodyColor: "#c7d2fe",
+        padding: { top: 10, bottom: 10, left: 14, right: 14 },
         cornerRadius: 10,
         displayColors: false,
-        titleFont: { family: "'DM Sans',sans-serif", size: 13, weight: "600" },
-        bodyFont:  { family: "'DM Sans',sans-serif", size: 12 },
+        caretSize: 6,
+        titleFont: { family: "'DM Sans',sans-serif", size: 13, weight: "700" },
+        bodyFont:  { family: "'DM Sans',sans-serif", size: 12.5 },
         callbacks: {
+          title: (items) => items[0].label,
           label: (ctx) =>
-              `${ctx.parsed.y} customer${ctx.parsed.y !== 1 ? "s" : ""}`,
+              `${ctx.parsed.y} customer${ctx.parsed.y !== 1 ? "s" : ""} · click to view`,
         },
       },
     },
@@ -219,19 +243,27 @@ export default function Analytics() {
         grid: { display: false },
         border: { display: false },
         ticks: {
-          color: "#9ca3af",
-          maxRotation: 35,
-          minRotation: 20,
-          font: { family: "'DM Sans',sans-serif", size: 11, weight: "500" },
+          // Darker X-axis labels (#6b7280 vs old #9ca3af) and slightly larger font
+          color: "#6b7280",
+          maxRotation: 40,
+          minRotation: 25,
+          // Truncate long company names to keep axis from crowding
+          callback: function(value) {
+            const label = this.getLabelForValue(value);
+            return label.length > 14 ? label.slice(0, 13) + "\u2026" : label;
+          },
+          font: { family: "'DM Sans',sans-serif", size: 11.5, weight: "500" },
         },
       },
       y: {
-        grid: { color: "#f3f4f6", lineWidth: 1 },
-        border: { display: false, dash: [3, 3] },
+        // More visible grid lines: #e5e7eb (was near-invisible #f3f4f6)
+        grid: { color: "#e5e7eb", lineWidth: 1 },
+        border: { display: false, dash: [4, 4] },
         ticks: {
-          color: "#d1d5db",
+          // Much darker Y-axis numbers: #6b7280 (was unreadable #d1d5db)
+          color: "#6b7280",
           stepSize: 1,
-          font: { family: "'DM Sans',sans-serif", size: 11 },
+          font: { family: "'DM Sans',sans-serif", size: 11.5, weight: "500" },
         },
         beginAtZero: true,
       },
@@ -351,7 +383,7 @@ export default function Analytics() {
                   Customers per Company
                 </h2>
                 <p style={{ fontSize: 12, color: "#9ca3af", margin: "2px 0 0" }}>
-                  Distribution across all registered companies
+                  Distribution across all registered companies · <span style={{ color: "#4f46e5", fontWeight: 600 }}>click a bar to open</span>
                 </p>
               </div>
               {/* Header badge: authoritative count from /api/companies/count */}
@@ -378,7 +410,7 @@ export default function Analytics() {
                     No company data available yet.
                   </div>
               ) : (
-                  <Bar data={chartData} options={chartOptions} />
+                  <Bar ref={chartRef} data={chartData} options={chartOptions} onClick={handleBarClick} />
               )}
             </div>
 
